@@ -30,7 +30,7 @@ export function StepIndicator({ currentStep, totalSteps, stepTitles }: StepIndic
           const stepNumber = index + 1;
           const isActive = stepNumber === currentStep;
           const isCompleted = stepNumber < currentStep;
-          const isUpcoming = stepNumber > currentStep;
+          // const isUpcoming = stepNumber > currentStep;
 
           return (
             <HStack key={stepNumber} alignItems="center" flex={1}>

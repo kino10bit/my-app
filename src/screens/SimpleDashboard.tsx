@@ -27,7 +27,7 @@ export default function SimpleDashboard() {
 
   useEffect(() => {
     loadDashboardData();
-  }, [goals, selectedTrainer]);
+  }, [loadDashboardData, goals, selectedTrainer]);
 
   const loadDashboardData = useStableCallback(async () => {
     const cacheKey = 'dashboard_data';
@@ -181,6 +181,13 @@ export default function SimpleDashboard() {
     };
   }, [goals, todayStamps]);
 
+  const greeting = React.useMemo(() => {
+    const currentHour = new Date().getHours();
+    if (currentHour < 12) return 'おはようございます！';
+    if (currentHour < 18) return 'こんにちは！';
+    return 'こんばんは！';
+  }, []);
+
   if (isLoading) {
     return (
       <View style={[styles.container, styles.centered]}>
@@ -189,13 +196,6 @@ export default function SimpleDashboard() {
       </View>
     );
   }
-
-  const greeting = useMemoizedValue(() => {
-    const currentHour = new Date().getHours();
-    if (currentHour < 12) return 'おはようございます！';
-    if (currentHour < 18) return 'こんにちは！';
-    return 'こんばんは！';
-  }, []);
 
   return (
     <ScrollView 

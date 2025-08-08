@@ -1,6 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
-  View,
   ScrollView,
   StyleSheet,
   Alert,
@@ -15,7 +14,6 @@ import {
   Card,
   Progress,
   Badge,
-  IconButton,
   useColorModeValue,
   Skeleton,
 } from 'native-base';
