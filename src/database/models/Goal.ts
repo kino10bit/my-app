@@ -16,19 +16,19 @@ export class GoalModel extends Model {
     stamps: { type: 'has_many', foreignKey: 'goal_id' },
   } as const;
 
-  @text('title') title!: string;
-  @text('category') category!: string;
-  @text('target_description') targetDescription!: string;
-  @boolean('is_active') isActive!: boolean;
-  @readonly @date('created_at') createdAt!: Date;
+  @text('title') title = '';
+  @text('category') category = '';
+  @text('target_description') targetDescription = '';
+  @boolean('is_active') isActive = true;
+  @readonly @date('created_at') createdAt = new Date();
   @date('target_end_date') targetEndDate?: Date;
-  @text('motivation') motivation!: string;
-  @number('difficulty') difficulty!: GoalDifficulty;
+  @text('motivation') motivation = '';
+  @number('difficulty') difficulty: GoalDifficulty = 1;
   
   // 進捗関連
-  @number('total_stamps') totalStamps!: number;
-  @number('current_streak') currentStreak!: number;
-  @number('best_streak') bestStreak!: number;
+  @number('total_stamps') totalStamps = 0;
+  @number('current_streak') currentStreak = 0;
+  @number('best_streak') bestStreak = 0;
   @date('last_stamp_date') lastStampDate?: Date;
   
   // 関連データ

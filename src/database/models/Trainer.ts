@@ -14,14 +14,14 @@ export class TrainerModel extends Model {
     rewards: { type: 'has_many', foreignKey: 'trainer_id' },
   } as const;
 
-  @text('name') name!: string;
-  @text('type') type!: TrainerType;
-  @boolean('is_selected') isSelected!: boolean;
-  @text('avatar_image_name') avatarImageName!: string;
-  @text('voice_prefix') voicePrefix!: string;
-  @text('description') description!: string;
-  @text('personality') personalityJson!: string;
-  @readonly @date('created_at') createdAt!: Date;
+  @text('name') name = '';
+  @text('type') type: TrainerType = TrainerType.Gentle;
+  @boolean('is_selected') isSelected = false;
+  @text('avatar_image_name') avatarImageName = '';
+  @text('voice_prefix') voicePrefix = '';
+  @text('description') description = '';
+  @text('personality') personalityJson = '{}';
+  @readonly @date('created_at') createdAt = new Date();
   
   // 関連データ
   @children('rewards') rewards: any;
