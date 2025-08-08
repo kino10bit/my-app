@@ -1,17 +1,33 @@
 import { Database } from '@nozbe/watermelondb';
-import SQLiteAdapter from '@nozbe/watermelondb/adapters/sqlite';
 import { Platform } from 'react-native';
 import { dbSchema } from './schema';
 import { GoalModel, TrainerModel } from './models';
 
-// SQLiteアダプターの設定
-const adapter = new SQLiteAdapter({
-  schema: dbSchema,
-  jsi: Platform.OS === 'ios',
-  onSetUpError: (error) => {
-    console.error('Database setup error:', error);
-  }
-});
+// プラットフォーム別アダプター設定
+let adapter;
+
+if (Platform.OS === 'web') {
+  // Web版用のLokiJSアダプター
+  const LokiJSAdapter = require('@nozbe/watermelondb/adapters/lokijs').default;
+  adapter = new LokiJSAdapter({
+    schema: dbSchema,
+    useWebWorker: false,
+    useIncrementalIndexedDB: true,
+    onSetUpError: (error) => {
+      console.error('Database setup error:', error);
+    }
+  });
+} else {
+  // ネイティブ版用のSQLiteアダプター
+  const SQLiteAdapter = require('@nozbe/watermelondb/adapters/sqlite').default;
+  adapter = new SQLiteAdapter({
+    schema: dbSchema,
+    jsi: Platform.OS === 'ios',
+    onSetUpError: (error) => {
+      console.error('Database setup error:', error);
+    }
+  });
+}
 
 // データベースインスタンスの作成
 export const database = new Database({
@@ -76,28 +92,28 @@ async function seedInitialData(): Promise<void> {
       await database.collections.get('trainers').create((trainer: any) => {
         trainer.name = trainerData.name;
         trainer.type = trainerData.type;
-        trainer.isSelected = trainerData.name === 'エナ'; // デフォルト選択
-        trainer.avatarImageName = trainerData.avatarImageName;
-        trainer.voicePrefix = trainerData.voicePrefix;
+        trainer.is_selected = trainerData.name === 'エナ'; // デフォルト選択
+        trainer.avatar_image_name = trainerData.avatarImageName;
+        trainer.voice_prefix = trainerData.voicePrefix;
         trainer.description = trainerData.description;
-        trainer.personalityJson = JSON.stringify(trainerData.personality);
-        trainer.createdAt = new Date();
+        trainer.personality = JSON.stringify(trainerData.personality);
+        trainer.created_at = new Date();
       });
     }
 
     // アプリ設定の初期化
     await database.collections.get('app_settings').create((settings: any) => {
-      settings.isFirstLaunch = true;
-      settings.voiceVolume = 0.8;
-      settings.notificationEnabled = true;
-      settings.preferredNotificationTime = new Date().setHours(9, 0, 0, 0);
-      settings.themeMode = 'auto';
+      settings.is_first_launch = true;
+      settings.voice_volume = 0.8;
+      settings.notification_enabled = true;
+      settings.preferred_notification_time = new Date().setHours(9, 0, 0, 0);
+      settings.theme_mode = 'auto';
       settings.language = 'ja';
-      settings.hapticFeedbackEnabled = true;
-      settings.animationsEnabled = true;
-      settings.totalAppUsageDays = 0;
-      settings.createdAt = new Date();
-      settings.updatedAt = new Date();
+      settings.haptic_feedback_enabled = true;
+      settings.animations_enabled = true;
+      settings.total_app_usage_days = 0;
+      settings.created_at = new Date();
+      settings.updated_at = new Date();
     });
   });
 }
