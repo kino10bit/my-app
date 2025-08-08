@@ -3,31 +3,27 @@ import { Platform } from 'react-native';
 import { dbSchema } from './schema';
 import { GoalModel, TrainerModel } from './models';
 
-// プラットフォーム別アダプター設定
-let adapter;
-
-if (Platform.OS === 'web') {
-  // Web版用のLokiJSアダプター
-  const LokiJSAdapter = require('@nozbe/watermelondb/adapters/lokijs').default;
-  adapter = new LokiJSAdapter({
-    schema: dbSchema,
-    useWebWorker: false,
-    useIncrementalIndexedDB: true,
-    onSetUpError: (error) => {
-      console.error('Database setup error:', error);
-    }
-  });
-} else {
-  // ネイティブ版用のSQLiteアダプター
-  const SQLiteAdapter = require('@nozbe/watermelondb/adapters/sqlite').default;
-  adapter = new SQLiteAdapter({
-    schema: dbSchema,
-    jsi: Platform.OS === 'ios',
-    onSetUpError: (error) => {
-      console.error('Database setup error:', error);
-    }
-  });
+// プラットフォーム別アダプター設定関数
+function createDatabaseAdapter() {
+  if (Platform.OS === 'web') {
+    // Web版用のLokiJSアダプター
+    const LokiJSAdapter = require('@nozbe/watermelondb/adapters/lokijs').default;
+    return new LokiJSAdapter({
+      schema: dbSchema,
+      useWebWorker: false,
+      useIncrementalIndexedDB: true,
+    });
+  } else {
+    // ネイティブ版用のSQLiteアダプター
+    const SQLiteAdapter = require('@nozbe/watermelondb/adapters/sqlite').default;
+    return new SQLiteAdapter({
+      schema: dbSchema,
+      jsi: Platform.OS === 'ios',
+    });
+  }
 }
+
+const adapter = createDatabaseAdapter();
 
 // データベースインスタンスの作成
 export const database = new Database({
