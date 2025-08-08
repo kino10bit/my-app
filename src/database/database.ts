@@ -4,56 +4,65 @@ import { dbSchema } from './schema';
 import { GoalModel, TrainerModel } from './models';
 
 // プラットフォーム別アダプター設定関数
-function createDatabaseAdapter() {
+async function createDatabaseAdapter() {
+  console.log(`Initializing database adapter for platform: ${Platform.OS}`);
+  
   if (Platform.OS === 'web') {
-    // Web版用のLokiJSアダプター
-    const LokiJSAdapter = require('@nozbe/watermelondb/adapters/lokijs').default;
-    return new LokiJSAdapter({
-      schema: dbSchema,
-      useWebWorker: false,
-      useIncrementalIndexedDB: true,
-    });
+    // Web版用のアダプター - SQLite関連を一切読み込まない
+    const { createWebAdapter } = await import('./adapters/WebAdapter');
+    return createWebAdapter(dbSchema);
   } else {
-    // ネイティブ版用のSQLiteアダプター
-    const SQLiteAdapter = require('@nozbe/watermelondb/adapters/sqlite').default;
-    return new SQLiteAdapter({
-      schema: dbSchema,
-      jsi: Platform.OS === 'ios',
-    });
+    // ネイティブ版用のアダプター
+    const { createNativeAdapter } = await import('./adapters/NativeAdapter');
+    return createNativeAdapter(dbSchema);
   }
 }
 
-const adapter = createDatabaseAdapter();
+// 非同期でアダプターを作成
+let adapter: any = null;
+let database: Database | null = null;
 
-// データベースインスタンスの作成
-export const database = new Database({
-  adapter,
-  modelClasses: [
-    GoalModel,
-    TrainerModel,
-    // 他のモデルクラスもここに追加
-  ],
-});
-
-// データベース初期化関数
-export async function initializeDatabase(): Promise<void> {
+export async function initializeDatabase(): Promise<Database> {
+  if (database) {
+    return database;
+  }
+  
   try {
-    // データベースの準備完了を待つ
-    await database.adapter.unsafeResetDatabase();
+    adapter = await createDatabaseAdapter();
+    console.log('Database adapter initialized successfully');
     
+    // データベースインスタンスの作成
+    database = new Database({
+      adapter,
+      modelClasses: [
+        GoalModel,
+        TrainerModel,
+        // 他のモデルクラスもここに追加
+      ],
+    });
+
     // 初期データの投入
-    await seedInitialData();
-    
+    await seedInitialData(database);
     console.log('Database initialized successfully');
+    
+    return database;
   } catch (error) {
     console.error('Failed to initialize database:', error);
     throw error;
   }
 }
 
+// データベースインスタンスを取得する関数
+export function getDatabase(): Database {
+  if (!database) {
+    throw new Error('Database not initialized. Call initializeDatabase() first.');
+  }
+  return database;
+}
+
 // 初期データの投入
-async function seedInitialData(): Promise<void> {
-  await database.write(async () => {
+async function seedInitialData(db: Database): Promise<void> {
+  await db.write(async () => {
     // デフォルトトレーナーの作成
     const defaultTrainers = [
       {
@@ -85,7 +94,7 @@ async function seedInitialData(): Promise<void> {
     ];
 
     for (const trainerData of defaultTrainers) {
-      await database.collections.get('trainers').create((trainer: any) => {
+      await db.collections.get('trainers').create((trainer: any) => {
         trainer.name = trainerData.name;
         trainer.type = trainerData.type;
         trainer.is_selected = trainerData.name === 'エナ'; // デフォルト選択
@@ -98,7 +107,7 @@ async function seedInitialData(): Promise<void> {
     }
 
     // アプリ設定の初期化
-    await database.collections.get('app_settings').create((settings: any) => {
+    await db.collections.get('app_settings').create((settings: any) => {
       settings.is_first_launch = true;
       settings.voice_volume = 0.8;
       settings.notification_enabled = true;
@@ -116,9 +125,8 @@ async function seedInitialData(): Promise<void> {
 
 // データベースリセット（開発用）
 export async function resetDatabase(): Promise<void> {
-  await database.adapter.unsafeResetDatabase();
-  await seedInitialData();
+  const db = getDatabase();
+  await db.adapter.unsafeResetDatabase();
+  await seedInitialData(db);
   console.log('Database reset completed');
 }
-
-export default database;

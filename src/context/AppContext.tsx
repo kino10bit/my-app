@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
-import { database } from '../database/database';
+import { getDatabase } from '../database/database';
 import { GoalModel, TrainerModel } from '../database/models';
 import { AudioService } from '../services/AudioService';
 import { MemoryOptimizer, PerformanceMonitor } from '../utils/PerformanceOptimizer';
@@ -80,6 +80,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
       // Load from database
       await PerformanceMonitor.measureAsync('loadTrainers', async () => {
+        const database = getDatabase();
         const trainerCollection = database.collections.get<TrainerModel>('trainers');
         const allTrainers = await trainerCollection.query().fetch();
         
@@ -108,6 +109,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
       // Load from database
       await PerformanceMonitor.measureAsync('loadGoals', async () => {
+        const database = getDatabase();
         const goalCollection = database.collections.get<GoalModel>('goals');
         const activeGoals = await goalCollection.query().fetch();
         

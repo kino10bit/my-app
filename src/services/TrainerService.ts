@@ -1,4 +1,4 @@
-import { database } from '../database/database';
+import { getDatabase } from '../database/database';
 import { TrainerModel } from '../database/models';
 import { Trainer, Result, AppError, AppErrorType } from '../types';
 import { AudioService } from './AudioService';
@@ -12,6 +12,7 @@ export class TrainerService {
 
   async getSelectedTrainer(): Promise<Result<Trainer>> {
     try {
+      const database = getDatabase();
       const trainerModels = await database.collections
         .get<TrainerModel>('trainers')
         .query()
@@ -59,6 +60,7 @@ export class TrainerService {
 
   async getAllTrainers(): Promise<Result<Trainer[]>> {
     try {
+      const database = getDatabase();
       const trainerModels = await database.collections
         .get<TrainerModel>('trainers')
         .query()
@@ -83,6 +85,7 @@ export class TrainerService {
 
   async selectTrainer(trainerId: string): Promise<Result<Trainer>> {
     try {
+      const database = getDatabase();
       const trainerModel = await database.collections
         .get<TrainerModel>('trainers')
         .find(trainerId);

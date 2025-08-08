@@ -96,7 +96,8 @@ export default function SimpleGoalCreation() {
     const result = await loadingManager.withLoading(
       LoadingKeys.GOAL_CREATE,
       async () => {
-        const { database } = await import('../database/database');
+        const { getDatabase } = await import('../database/database');
+        const database = getDatabase();
         const goalCollection = database.collections.get('goals');
         
         await database.write(async () => {

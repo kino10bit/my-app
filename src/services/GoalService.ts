@@ -1,4 +1,4 @@
-import { database } from '../database/database';
+import { getDatabase } from '../database/database';
 import { GoalModel } from '../database/models';
 import { Goal, GoalDifficulty, Result, AppError, AppErrorType } from '../types';
 
@@ -27,6 +27,7 @@ export class GoalService {
         };
       }
 
+      const database = getDatabase();
       const goalModel = await database.write(async () => {
         return await database.collections.get<GoalModel>('goals').create(goal => {
           goal.title = title.trim();
@@ -63,6 +64,7 @@ export class GoalService {
 
   async getActiveGoals(): Promise<Result<Goal[]>> {
     try {
+      const database = getDatabase();
       const goalModels = await database.collections
         .get<GoalModel>('goals')
         .query()
@@ -89,6 +91,7 @@ export class GoalService {
 
   async getGoalById(goalId: string): Promise<Result<Goal>> {
     try {
+      const database = getDatabase();
       const goalModel = await database.collections
         .get<GoalModel>('goals')
         .find(goalId);
@@ -112,6 +115,7 @@ export class GoalService {
 
   async updateGoal(goalId: string, updates: Partial<Goal>): Promise<Result<Goal>> {
     try {
+      const database = getDatabase();
       const goalModel = await database.collections
         .get<GoalModel>('goals')
         .find(goalId);
@@ -147,6 +151,7 @@ export class GoalService {
 
   async deleteGoal(goalId: string): Promise<Result<void>> {
     try {
+      const database = getDatabase();
       await database.write(async () => {
         const goalModel = await database.collections
           .get<GoalModel>('goals')
@@ -172,6 +177,7 @@ export class GoalService {
 
   async addStampToGoal(goalId: string): Promise<Result<Goal>> {
     try {
+      const database = getDatabase();
       const goalModel = await database.collections
         .get<GoalModel>('goals')
         .find(goalId);

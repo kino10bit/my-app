@@ -12,23 +12,37 @@ config.resolver.assetExts.push('db');
 // Configure resolver for web platform compatibility
 config.resolver.resolverMainFields = ['react-native', 'browser', 'main'];
 
-// Platform-specific module resolution
+// Comprehensive module aliasing for web builds
 config.resolver.alias = {
   ...config.resolver.alias,
-  // Completely exclude Node.js modules for web builds
+  // Replace Node.js modules with empty modules
   'better-sqlite3': require.resolve('./src/utils/empty-module.js'),
   'fs': require.resolve('./src/utils/empty-module.js'),
   'path': require.resolve('./src/utils/empty-module.js'),
+  // Replace entire SQLite adapter with LokiJS for web
+  '@nozbe/watermelondb/adapters/sqlite': require.resolve('./src/utils/empty-module.js'),
+  '@nozbe/watermelondb/adapters/sqlite/index': require.resolve('./src/utils/empty-module.js'),
 };
 
-// More comprehensive module exclusion for web
+// Platform-specific module resolution function
+config.resolver.resolverMainFields = (platform) => {
+  if (platform === 'web') {
+    return ['browser', 'main'];
+  }
+  return ['react-native', 'main'];
+};
+
+// Comprehensive module exclusion
 config.resolver.blockList = [
-  // Block better-sqlite3 completely
+  // Block better-sqlite3 and related modules
   /node_modules\/better-sqlite3\/.*/,
-  // Block SQLite Node.js specific modules
+  // Block all SQLite Node.js specific code
   /node_modules\/@nozbe\/watermelondb\/adapters\/sqlite\/sqlite-node\/.*/,
-  // Block any SQLite native dependencies
-  /node_modules\/@nozbe\/watermelondb\/.*\/sqlite-node\/.*/,
+  /node_modules\/@nozbe\/watermelondb\/adapters\/sqlite\/.*sqlite-node.*/,
+  // Block the entire SQLite adapter directory for web
+  ...(process.env.EXPO_PLATFORM === 'web' ? [
+    /node_modules\/@nozbe\/watermelondb\/adapters\/sqlite\/.*/,
+  ] : []),
 ];
 
 module.exports = config;
