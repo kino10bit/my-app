@@ -1,9 +1,9 @@
 name: EAS Build (iOS)
 
 on:
-  push:
-    branches:
-      - main # 任意のブランチ名
+  # push:
+  #   branches:
+  #     - main # 任意のブランチ名
   workflow_dispatch: # 手動実行を有効にする
 
 jobs:
