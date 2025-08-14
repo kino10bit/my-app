@@ -8,22 +8,19 @@
       "developmentClient": true,
       "distribution": "internal",
       "ios": {
-        "credentialsSource": "remote",
-        "autoCodeSigning": "automatic"
+        "credentialsSource": "remote"
       }
     },
     "preview": {
       "distribution": "internal",
       "ios": {
-        "credentialsSource": "remote",
-        "autoCodeSigning": "automatic"
+        "credentialsSource": "remote"
       }
     },
     "production": {
       "autoIncrement": true,
       "ios": {
-        "credentialsSource": "remote",
-        "autoCodeSigning": "automatic"
+        "credentialsSource": "remote"
       }
     }
   },
