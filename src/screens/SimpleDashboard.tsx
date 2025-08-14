@@ -10,6 +10,7 @@ import {
   RefreshControl,
 } from 'react-native';
 import { useAppContext } from '../context/AppContext';
+import { GoalModel } from '../database/models';
 import { MemoryOptimizer, PerformanceMonitor, useMemoizedValue, useStableCallback } from '../utils/PerformanceOptimizer';
 
 export default function SimpleDashboard() {

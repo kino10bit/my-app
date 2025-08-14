@@ -1,7 +1,7 @@
 import { Model } from '@nozbe/watermelondb';
 import { 
   text, 
-  boolean, 
+  field,
   date, 
   children,
   readonly 
@@ -16,7 +16,7 @@ export class TrainerModel extends Model {
 
   @text('name') name = '';
   @text('type') type: TrainerType = TrainerType.Gentle;
-  @boolean('is_selected') isSelected = false;
+  @field('is_selected') isSelected = false;
   @text('avatar_image_name') avatarImageName = '';
   @text('voice_prefix') voicePrefix = '';
   @text('description') description = '';
@@ -75,9 +75,11 @@ export class TrainerModel extends Model {
 
   // アクションメソッド
   async select(): Promise<void> {
+    const allTrainers = await this.collections.get('trainers').query().fetch();
+    
     await this.batch(
       // 他のトレーナーの選択を解除
-      ...this.collections.get('trainers').query().map((trainer: any) =>
+      ...allTrainers.map((trainer: any) =>
         trainer.prepareUpdate((t: any) => {
           t.isSelected = false;
         })

@@ -120,11 +120,7 @@ export class TrainerService {
       const trainer = selectedTrainerResult.data;
       const voiceFileName = `${trainer.voicePrefix}_${achievementType}`;
       
-      const playResult = await this.audioService.playTrainerVoice(voiceFileName);
-      
-      if (!playResult.success) {
-        return playResult;
-      }
+      await this.audioService.playTrainerVoice(voiceFileName);
 
       return {
         success: true,

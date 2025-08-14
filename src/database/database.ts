@@ -1,7 +1,25 @@
-import { Database } from '@nozbe/watermelondb';
+// Conditional imports to avoid loading WatermelonDB on web during bundle time
+let Database: any;
+let dbSchema: any;
+let GoalModel: any;
+let TrainerModel: any;
+
 import { Platform } from 'react-native';
-import { dbSchema } from './schema';
-import { GoalModel, TrainerModel } from './models';
+
+// Lazy load WatermelonDB components only when needed
+async function loadWatermelonDB() {
+  if (!Database) {
+    const WatermelonModule = await import('@nozbe/watermelondb');
+    Database = WatermelonModule.Database;
+    
+    const schemaModule = await import('./schema');
+    dbSchema = schemaModule.dbSchema;
+    
+    const modelsModule = await import('./models');
+    GoalModel = modelsModule.GoalModel;
+    TrainerModel = modelsModule.TrainerModel;
+  }
+}
 
 // プラットフォーム別アダプター設定関数
 async function createDatabaseAdapter() {
@@ -20,14 +38,17 @@ async function createDatabaseAdapter() {
 
 // 非同期でアダプターを作成
 let adapter: any = null;
-let database: Database | null = null;
+let database: any = null;
 
-export async function initializeDatabase(): Promise<Database> {
+export async function initializeDatabase(): Promise<any> {
   if (database) {
     return database;
   }
   
   try {
+    // Load WatermelonDB components lazily
+    await loadWatermelonDB();
+    
     adapter = await createDatabaseAdapter();
     console.log('Database adapter initialized successfully');
     
@@ -53,7 +74,7 @@ export async function initializeDatabase(): Promise<Database> {
 }
 
 // データベースインスタンスを取得する関数
-export function getDatabase(): Database {
+export function getDatabase(): any {
   if (!database) {
     throw new Error('Database not initialized. Call initializeDatabase() first.');
   }
@@ -61,7 +82,7 @@ export function getDatabase(): Database {
 }
 
 // 初期データの投入
-async function seedInitialData(db: Database): Promise<void> {
+async function seedInitialData(db: any): Promise<void> {
   await db.write(async () => {
     // デフォルトトレーナーの作成
     const defaultTrainers = [

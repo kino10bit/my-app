@@ -17,8 +17,10 @@
   "dependencies": {
     "@expo/vector-icons": "^14.1.0",
     "@nozbe/watermelondb": "^0.28.0",
+    "@react-native-community/datetimepicker": "8.4.1",
     "expo": "53.0.20",
     "expo-av": "~15.1.7",
+    "expo-blur": "~14.1.5",
     "expo-constants": "~17.1.7",
     "expo-font": "~13.3.2",
     "expo-haptics": "~14.1.4",
@@ -31,6 +33,7 @@
     "expo-system-ui": "~5.0.10",
     "expo-web-browser": "~14.2.0",
     "native-base": "^3.4.28",
+    "normalize-css-color": "^1.0.2",
     "react": "19.0.0",
     "react-dom": "19.0.0",
     "react-native": "0.79.5",
@@ -41,8 +44,7 @@
     "react-native-sqlite-storage": "^6.0.1",
     "react-native-svg": "15.11.2",
     "react-native-web": "~0.20.0",
-    "expo-blur": "~14.1.5",
-    "@react-native-community/datetimepicker": "8.4.1"
+    "tslib": "^2.8.1"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
@@ -59,7 +61,8 @@
     "typescript": "~5.8.3"
   },
   "overrides": {
-    "react-test-renderer": "19.0.0"
+    "react-test-renderer": "19.0.0",
+    "ajv": "^8.17.1"
   },
   "private": true
 }

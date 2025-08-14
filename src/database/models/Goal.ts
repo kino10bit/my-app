@@ -1,8 +1,7 @@
 import { Model } from '@nozbe/watermelondb';
 import { 
   text, 
-  number, 
-  boolean, 
+  field,
   date, 
   children,
   readonly 
@@ -19,16 +18,16 @@ export class GoalModel extends Model {
   @text('title') title = '';
   @text('category') category = '';
   @text('target_description') targetDescription = '';
-  @boolean('is_active') isActive = true;
+  @field('is_active') isActive = true;
   @readonly @date('created_at') createdAt = new Date();
   @date('target_end_date') targetEndDate?: Date;
   @text('motivation') motivation = '';
-  @number('difficulty') difficulty: GoalDifficulty = 1;
+  @field('difficulty') difficulty: GoalDifficulty = 1;
   
   // 進捗関連
-  @number('total_stamps') totalStamps = 0;
-  @number('current_streak') currentStreak = 0;
-  @number('best_streak') bestStreak = 0;
+  @field('total_stamps') totalStamps = 0;
+  @field('current_streak') currentStreak = 0;
+  @field('best_streak') bestStreak = 0;
   @date('last_stamp_date') lastStampDate?: Date;
   
   // 関連データ
