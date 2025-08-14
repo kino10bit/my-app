@@ -1,6 +1,13 @@
-# Welcome to your Expo app 👋
+# Appcadia - 習慣形成アプリ 🎯
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+習慣形成をサポートする React Native + Expo アプリです。AIトレーナーと一緒に目標達成を目指しましょう！
+
+## 📚 ドキュメント
+
+- **[📋 全ドキュメントメニュー](./DOCS.md)** - すべての設計書・仕様書
+- **[🛠 開発者クイックメニュー](./DEV_MENU.md)** - よく使う開発資料
+
+---
 
 ## Get started
 
