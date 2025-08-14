@@ -9,49 +9,49 @@
 
 ---
 
-## Get started
+## 開始方法
 
-1. Install dependencies
+1. 依存関係をインストール
 
    ```bash
    npm install
    ```
 
-2. Start the app
+2. アプリを起動
 
    ```bash
    npx expo start
    ```
 
-In the output, you'll find options to open the app in a
+出力画面で、以下のオプションからアプリを開くことができます：
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+- [開発ビルド](https://docs.expo.dev/develop/development-builds/introduction/)
+- [Android エミュレーター](https://docs.expo.dev/workflow/android-studio-emulator/)
+- [iOS シミュレーター](https://docs.expo.dev/workflow/ios-simulator/)
+- [Expo Go](https://expo.dev/go) - Expo アプリ開発用の限定的なサンドボックス
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+**app** ディレクトリ内のファイルを編集することで開発を開始できます。このプロジェクトは[ファイルベースルーティング](https://docs.expo.dev/router/introduction)を使用しています。
 
-## Get a fresh project
+## 新しいプロジェクトを開始
 
-When you're ready, run:
+準備ができたら、以下のコマンドを実行してください：
 
 ```bash
 npm run reset-project
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+このコマンドにより、スターターコードが **app-example** ディレクトリに移動し、開発を開始できる空の **app** ディレクトリが作成されます。
 
-## Learn more
+## さらに学ぶ
 
-To learn more about developing your project with Expo, look at the following resources:
+Expo を使ったプロジェクト開発について詳しく学ぶには、以下のリソースを参照してください：
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+- [Expo ドキュメント](https://docs.expo.dev/): 基礎を学んだり、[ガイド](https://docs.expo.dev/guides)で高度なトピックを学習
+- [Expo 学習チュートリアル](https://docs.expo.dev/tutorial/introduction/): Android、iOS、Web で動作するプロジェクトを作成するステップバイステップのチュートリアル
 
-## Join the community
+## コミュニティに参加
 
-Join our community of developers creating universal apps.
+ユニバーサルアプリを作成する開発者コミュニティに参加しましょう。
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+- [GitHub の Expo](https://github.com/expo/expo): オープンソースプラットフォームを確認し、コントリビュート
+- [Discord コミュニティ](https://chat.expo.dev): Expo ユーザーとチャットし、質問を投稿
