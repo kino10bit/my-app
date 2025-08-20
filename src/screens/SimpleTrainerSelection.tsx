@@ -217,7 +217,7 @@ export default function SimpleTrainerSelection() {
                 {getTypeDisplayName(localSelectedTrainer.type)}タイプ
               </Text>
               <Text style={styles.summaryWords}>
-                応援メッセージ例: {localSelectedTrainer.personality.supportiveWords.slice(0, 3).join('、')}など
+                応援メッセージ例: {localSelectedTrainer.personality?.supportiveWords?.slice(0, 3)?.join('、') || 'データなし'}など
               </Text>
             </View>
           </View>

@@ -53,6 +53,12 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const initializeApp = async () => {
     setIsLoading(true);
     try {
+      // まずデータベースを初期化
+      const { initializeDatabase } = await import('../database/database');
+      await initializeDatabase();
+      console.log('Database initialization completed in AppContext');
+      
+      // その後でデータローディングとオーディオ初期化を実行
       await Promise.all([
         loadTrainers(),
         loadGoals(),
@@ -81,6 +87,12 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       // Load from database
       await PerformanceMonitor.measureAsync('loadTrainers', async () => {
         const database = getDatabase();
+        if (!database) {
+          console.warn('Database not available, using empty trainers array');
+          setTrainers([]);
+          return;
+        }
+        
         const trainerCollection = database.collections.get<TrainerModel>('trainers');
         const allTrainers = await trainerCollection.query().fetch();
         
@@ -95,6 +107,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       });
     } catch (error) {
       console.error('Failed to load trainers:', error);
+      setTrainers([]);
     }
   }, []);
 
@@ -110,6 +123,12 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       // Load from database
       await PerformanceMonitor.measureAsync('loadGoals', async () => {
         const database = getDatabase();
+        if (!database) {
+          console.warn('Database not available, using empty goals array');
+          setGoals([]);
+          return;
+        }
+        
         const goalCollection = database.collections.get<GoalModel>('goals');
         const activeGoals = await goalCollection.query().fetch();
         
@@ -119,6 +138,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       });
     } catch (error) {
       console.error('Failed to load goals:', error);
+      setGoals([]);
     }
   }, []);
 

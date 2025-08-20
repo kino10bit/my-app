@@ -6,6 +6,23 @@ let TrainerModel: any;
 
 import { Platform } from 'react-native';
 
+// ユーザーエージェントベースのプラットフォーム検出
+function getActualPlatform(): string {
+  if (Platform.OS === 'web') {
+    // Web環境でのユーザーエージェント確認
+    if (typeof navigator !== 'undefined') {
+      const userAgent = navigator.userAgent;
+      if (/iPhone|iPad|iPod/.test(userAgent)) {
+        return 'ios-web';
+      } else if (/Android/.test(userAgent)) {
+        return 'android-web';
+      }
+    }
+    return 'web';
+  }
+  return Platform.OS;
+}
+
 // Lazy load WatermelonDB components only when needed
 async function loadWatermelonDB() {
   if (!Database) {
@@ -23,17 +40,12 @@ async function loadWatermelonDB() {
 
 // プラットフォーム別アダプター設定関数
 async function createDatabaseAdapter() {
-  console.log(`Initializing database adapter for platform: ${Platform.OS}`);
+  const actualPlatform = getActualPlatform();
+  console.log(`Initializing database adapter for platform: ${actualPlatform}`);
   
-  if (Platform.OS === 'web') {
-    // Web版用のアダプター - SQLite関連を一切読み込まない
-    const { createWebAdapter } = await import('./adapters/WebAdapter');
-    return createWebAdapter(dbSchema);
-  } else {
-    // ネイティブ版用のアダプター
-    const { createNativeAdapter } = await import('./adapters/NativeAdapter');
-    return createNativeAdapter(dbSchema);
-  }
+  // 常にWebアダプターを使用（JSIの問題を回避）
+  const { createWebAdapter } = await import('./adapters/WebAdapter');
+  return createWebAdapter(dbSchema);
 }
 
 // 非同期でアダプターを作成
@@ -45,12 +57,16 @@ export async function initializeDatabase(): Promise<any> {
     return database;
   }
   
+  const actualPlatform = getActualPlatform();
+  console.log(`Initializing database for platform: ${actualPlatform}`);
+  
   try {
     // Load WatermelonDB components lazily
     await loadWatermelonDB();
+    console.log('WatermelonDB modules loaded successfully');
     
     adapter = await createDatabaseAdapter();
-    console.log('Database adapter initialized successfully');
+    console.log('Database adapter created successfully');
     
     // データベースインスタンスの作成
     database = new Database({
@@ -61,87 +77,195 @@ export async function initializeDatabase(): Promise<any> {
         // 他のモデルクラスもここに追加
       ],
     });
+    console.log('Database instance created successfully');
 
-    // 初期データの投入
-    await seedInitialData(database);
-    console.log('Database initialized successfully');
+    // データベースの初期化を確認
+    if (!database.collections) {
+      throw new Error('Database collections not properly initialized');
+    }
+
+    console.log('Database collections confirmed, proceeding with initial data seeding');
+
+    // 初期データの投入（モバイルWeb環境では軽量化）
+    if (actualPlatform.includes('web')) {
+      await seedInitialDataWeb(database);
+    } else {
+      await seedInitialData(database);
+    }
+    console.log('Database initialization completed successfully');
     
     return database;
   } catch (error) {
     console.error('Failed to initialize database:', error);
-    throw error;
+    console.error('Error details:', error.stack || error.message);
+    
+    // データベース初期化失敗時は null を返す
+    console.log('Database initialization failed, using fallback mode');
+    database = null;
+    return null;
   }
 }
 
 // データベースインスタンスを取得する関数
 export function getDatabase(): any {
   if (!database) {
-    throw new Error('Database not initialized. Call initializeDatabase() first.');
+    console.warn('Database not yet initialized, returning null');
+    return null; // 初期化中またはフォールバック
   }
   return database;
 }
 
-// 初期データの投入
-async function seedInitialData(db: any): Promise<void> {
-  await db.write(async () => {
-    // デフォルトトレーナーの作成
-    const defaultTrainers = [
-      {
+// データベースが使用可能かチェック
+export function isDatabaseAvailable(): boolean {
+  return database !== null && database !== undefined;
+}
+
+// Web環境用の軽量初期データ投入
+async function seedInitialDataWeb(db: any): Promise<void> {
+  try {
+    if (!db || !db.collections) {
+      console.warn('Database or collections not available, skipping initial data seeding');
+      return;
+    }
+
+    await db.write(async () => {
+      console.log('Seeding initial data for web environment...');
+      
+      // トレーナーコレクションの確認
+      const trainersCollection = db.collections.get('trainers');
+      if (!trainersCollection) {
+        console.warn('Trainers collection not found, skipping seeding');
+        return;
+      }
+
+      // 既存データの確認
+      const existingTrainers = await trainersCollection.query().fetch();
+      if (existingTrainers.length > 0) {
+        console.log('Trainers already exist, skipping seeding');
+        return;
+      }
+
+      // 最小限のトレーナーデータのみ作成
+      const trainerData = {
         name: 'エナ',
         type: 'energetic',
         avatarImageName: 'trainer_ena.png',
         voicePrefix: 'ena',
         description: '元気いっぱいでサポートします！',
-        personality: {
-          catchphrase: '今日も一緒に頑張ろう！',
-          encouragementStyle: 'エネルギッシュで前向き',
-          celebrationStyle: '大げさに喜ぶ',
-          supportiveWords: ['やったね！', 'すごいじゃない！', '頑張って！', 'きっとできる！']
-        }
-      },
-      {
-        name: 'カルム',
-        type: 'calm',
-        avatarImageName: 'trainer_calm.png',
-        voicePrefix: 'calm',
-        description: '落ち着いてサポートします',
-        personality: {
-          catchphrase: '一歩ずつ、着実に進みましょう',
-          encouragementStyle: '穏やかで安心感のある',
-          celebrationStyle: '静かに喜びを表現',
-          supportiveWords: ['素晴らしいですね', 'よく頑張りました', '順調ですね', 'その調子です']
-        }
-      }
-    ];
+      };
 
-    for (const trainerData of defaultTrainers) {
-      await db.collections.get('trainers').create((trainer: any) => {
+      await trainersCollection.create((trainer: any) => {
         trainer.name = trainerData.name;
         trainer.type = trainerData.type;
-        trainer.is_selected = trainerData.name === 'エナ'; // デフォルト選択
+        trainer.is_selected = true;
         trainer.avatar_image_name = trainerData.avatarImageName;
         trainer.voice_prefix = trainerData.voicePrefix;
         trainer.description = trainerData.description;
-        trainer.personality = JSON.stringify(trainerData.personality);
+        trainer.personality = JSON.stringify({
+          catchphrase: '今日も一緒に頑張ろう！',
+          supportiveWords: ['やったね！', 'すごいじゃない！']
+        });
         trainer.created_at = new Date();
       });
+      
+      console.log('Web initial data seeded successfully');
+    });
+  } catch (error) {
+    console.warn('Failed to seed initial data for web:', error);
+    // Web環境では初期データなしでも続行
+  }
+}
+
+// 初期データの投入
+async function seedInitialData(db: any): Promise<void> {
+  try {
+    if (!db || !db.collections) {
+      console.warn('Database or collections not available, skipping initial data seeding');
+      return;
     }
 
-    // アプリ設定の初期化
-    await db.collections.get('app_settings').create((settings: any) => {
-      settings.is_first_launch = true;
-      settings.voice_volume = 0.8;
-      settings.notification_enabled = true;
-      settings.preferred_notification_time = new Date().setHours(9, 0, 0, 0);
-      settings.theme_mode = 'auto';
-      settings.language = 'ja';
-      settings.haptic_feedback_enabled = true;
-      settings.animations_enabled = true;
-      settings.total_app_usage_days = 0;
-      settings.created_at = new Date();
-      settings.updated_at = new Date();
+    await db.write(async () => {
+      // トレーナーコレクションの確認
+      const trainersCollection = db.collections.get('trainers');
+      if (!trainersCollection) {
+        console.warn('Trainers collection not found, skipping trainer seeding');
+        return;
+      }
+
+      // 既存データの確認
+      const existingTrainers = await trainersCollection.query().fetch();
+      if (existingTrainers.length > 0) {
+        console.log('Trainers already exist, skipping trainer seeding');
+      } else {
+        // デフォルトトレーナーの作成
+        const defaultTrainers = [
+          {
+            name: 'エナ',
+            type: 'energetic',
+            avatarImageName: 'trainer_ena.png',
+            voicePrefix: 'ena',
+            description: '元気いっぱいでサポートします！',
+            personality: {
+              catchphrase: '今日も一緒に頑張ろう！',
+              encouragementStyle: 'エネルギッシュで前向き',
+              celebrationStyle: '大げさに喜ぶ',
+              supportiveWords: ['やったね！', 'すごいじゃない！', '頑張って！', 'きっとできる！']
+            }
+          },
+          {
+            name: 'カルム',
+            type: 'calm',
+            avatarImageName: 'trainer_calm.png',
+            voicePrefix: 'calm',
+            description: '落ち着いてサポートします',
+            personality: {
+              catchphrase: '一歩ずつ、着実に進みましょう',
+              encouragementStyle: '穏やかで安心感のある',
+              celebrationStyle: '静かに喜びを表現',
+              supportiveWords: ['素晴らしいですね', 'よく頑張りました', '順調ですね', 'その調子です']
+            }
+          }
+        ];
+
+        for (const trainerData of defaultTrainers) {
+          await trainersCollection.create((trainer: any) => {
+            trainer.name = trainerData.name;
+            trainer.type = trainerData.type;
+            trainer.is_selected = trainerData.name === 'エナ'; // デフォルト選択
+            trainer.avatar_image_name = trainerData.avatarImageName;
+            trainer.voice_prefix = trainerData.voicePrefix;
+            trainer.description = trainerData.description;
+            trainer.personality = JSON.stringify(trainerData.personality);
+            trainer.created_at = new Date();
+          });
+        }
+      }
+
+      // アプリ設定の初期化
+      const settingsCollection = db.collections.get('app_settings');
+      if (settingsCollection) {
+        const existingSettings = await settingsCollection.query().fetch();
+        if (existingSettings.length === 0) {
+          await settingsCollection.create((settings: any) => {
+            settings.is_first_launch = true;
+            settings.voice_volume = 0.8;
+            settings.notification_enabled = true;
+            settings.preferred_notification_time = new Date().setHours(9, 0, 0, 0);
+            settings.theme_mode = 'auto';
+            settings.language = 'ja';
+            settings.haptic_feedback_enabled = true;
+            settings.animations_enabled = true;
+            settings.total_app_usage_days = 0;
+            settings.created_at = new Date();
+            settings.updated_at = new Date();
+          });
+        }
+      }
     });
-  });
+  } catch (error) {
+    console.error('Error in seedInitialData:', error);
+    throw error;
+  }
 }
 
 // データベースリセット（開発用）

@@ -6,7 +6,7 @@ import {
   children,
   readonly 
 } from '@nozbe/watermelondb/decorators';
-import { TrainerType, TrainerPersonality } from '../../types';
+import { TrainerType, TrainerPersonality } from '../../types/Trainer';
 
 export class TrainerModel extends Model {
   static table = 'trainers';
@@ -14,21 +14,29 @@ export class TrainerModel extends Model {
     rewards: { type: 'has_many', foreignKey: 'trainer_id' },
   } as const;
 
-  @text('name') name = '';
-  @text('type') type: TrainerType = TrainerType.Gentle;
-  @field('is_selected') isSelected = false;
-  @text('avatar_image_name') avatarImageName = '';
-  @text('voice_prefix') voicePrefix = '';
-  @text('description') description = '';
-  @text('personality') personalityJson = '{}';
-  @readonly @date('created_at') createdAt = new Date();
+  @text('name') name!: string;
+  @text('type') type!: TrainerType;
+  @field('is_selected') isSelected!: boolean;
+  @text('avatar_image_name') avatarImageName!: string;
+  @text('voice_prefix') voicePrefix!: string;
+  @text('description') description!: string;
+  @text('personality') personalityJson!: string;
+  @readonly @date('created_at') createdAt!: Date;
   
   // 関連データ
   @children('rewards') rewards: any;
 
   // 計算プロパティ
   get personality(): TrainerPersonality {
-    return JSON.parse(this.personalityJson);
+    try {
+      return JSON.parse(this.personalityJson || '{}');
+    } catch (error) {
+      console.warn('Failed to parse trainer personality JSON:', error);
+      return {
+        catchphrase: '',
+        supportiveWords: []
+      } as TrainerPersonality;
+    }
   }
 
   set personality(value: TrainerPersonality) {

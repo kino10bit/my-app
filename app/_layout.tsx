@@ -6,9 +6,7 @@ import { useEffect } from 'react';
 import 'react-native-reanimated';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
-import { initializeDatabase } from '../src/database/database';
 import { AppProvider } from '../src/context/AppContext';
-import { Platform } from 'react-native';
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
@@ -16,14 +14,7 @@ export default function RootLayout() {
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
 
-  useEffect(() => {
-    // WatermelonDBをWeb環境では初期化しない（LokiJSの問題回避）
-    if (Platform.OS !== 'web') {
-      initializeDatabase().catch(console.error);
-    } else {
-      console.log('Database initialization skipped for web platform');
-    }
-  }, []);
+  // データベース初期化はAppContextで処理されるため、ここでは削除
 
   if (!loaded) {
     // Async font loading only occurs in development.

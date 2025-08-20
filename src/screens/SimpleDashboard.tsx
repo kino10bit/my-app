@@ -26,10 +26,6 @@ export default function SimpleDashboard() {
 
   const memoizedStatistics = useMemoizedValue(() => statistics, [statistics]);
 
-  useEffect(() => {
-    loadDashboardData();
-  }, [loadDashboardData, goals, selectedTrainer]);
-
   const loadDashboardData = useStableCallback(async () => {
     const cacheKey = 'dashboard_data';
     const cached = MemoryOptimizer.getCache(cacheKey);
@@ -55,6 +51,10 @@ export default function SimpleDashboard() {
       console.error('Failed to load dashboard data:', error);
     }
   });
+
+  useEffect(() => {
+    loadDashboardData();
+  }, [loadDashboardData, goals, selectedTrainer]);
 
   const loadStatistics = useStableCallback(async () => {
     const cacheKey = `statistics_${goals.length}`;
