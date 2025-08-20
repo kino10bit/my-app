@@ -20,6 +20,7 @@
 - [デザインシステム基本](.claude/02_design_system/00_basic_design.md) - カラー・フォント
 - [コンポーネント設計](.claude/02_design_system/02_component_design.md) - UI コンポーネント
 - [UI/UX仕様](.claude/01_development_docs/16_ui_ux_specification.md) - 詳細UI仕様
+- [ダッシュボード画面仕様](.claude/04_screen_specs/01_dashboard_screen.md) - メイン画面設計
 
 ### テスト・品質
 - [テスト戦略](.claude/01_development_docs/09_test_strategy.md) - テスト方針
