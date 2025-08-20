@@ -6,7 +6,9 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
+  Image,
 } from 'react-native';
+import { Audio } from 'expo-av';
 import { useAppContext } from '../context/AppContext';
 import { ErrorHandler } from '../utils/ErrorHandler';
 import { Validation } from '../utils/Validation';
@@ -43,15 +45,28 @@ export default function SimpleTrainerSelection() {
     }
   };
 
-  const getTypeEmoji = (type: string): string => {
-    switch (type) {
-      case 'energetic': return '👩‍🏫✨';
-      case 'calm': return '🧘‍♂️🌿';
-      case 'strict': return '👨‍💼💪';
-      case 'gentle': return '👩‍🍳🌸';
-      case 'motivational': return '🏃‍♂️🔥';
-      default: return '👤';
-    }
+  const getTrainerImage = (trainerId: string) => {
+    // プレースホルダー画像パス（実際の画像ファイルが利用可能になったら更新）
+    const imagePaths: { [key: string]: any } = {
+      'akari': null, // require('../../assets/images/trainers/akari.png'),
+      'shinji': null, // require('../../assets/images/trainers/shinji.png'),
+      'takumi': null, // require('../../assets/images/trainers/takumi.png'),
+      'miyuki': null, // require('../../assets/images/trainers/miyuki.png'),
+      'daiki': null, // require('../../assets/images/trainers/daiki.png'),
+    };
+    return imagePaths[trainerId] || null;
+  };
+
+  const getTrainerAudio = (trainerId: string) => {
+    // プレースホルダー音声パス（実際の音声ファイルが利用可能になったら更新）
+    const audioPaths: { [key: string]: any } = {
+      'akari': null, // require('../../assets/audio/trainers/akari.mp3'),
+      'shinji': null, // require('../../assets/audio/trainers/shinji.mp3'),
+      'takumi': null, // require('../../assets/audio/trainers/takumi.mp3'),
+      'miyuki': null, // require('../../assets/audio/trainers/miyuki.mp3'),
+      'daiki': null, // require('../../assets/audio/trainers/daiki.mp3'),
+    };
+    return audioPaths[trainerId] || null;
   };
 
   const handleSelectTrainer = async (trainer: any) => {
@@ -89,24 +104,32 @@ export default function SimpleTrainerSelection() {
   };
 
   const playVoiceSample = async (trainer: any) => {
-    const loadingManager = LoadingManager.getInstance();
-    
-    await loadingManager.withLoading(
-      LoadingKeys.AUDIO_PLAY,
-      async () => {
-        const message = audioService.getTrainerVoiceMessage(trainer.type, 'welcome');
-        const fileName = `${trainer.voicePrefix}_welcome`;
-        
-        await audioService.playTrainerVoice(fileName, `${trainer.name}：「${message}」`);
-        return true;
-      },
-      {
-        errorHandler: (error) => {
-          const appError = ErrorHandler.handleError(error, 'audio_playback');
-          ErrorHandler.showUserError(appError, '音声再生エラー');
-        }
+    try {
+      const audioSource = getTrainerAudio(trainer.id);
+      if (!audioSource) {
+        // 音声ファイルがない場合は、トレーナーからのメッセージをテキストで表示
+        const welcomeMessage = `${trainer.name}：「${trainer.personality?.catchphrase || 'よろしくお願いします！'}」`;
+        ErrorHandler.showUserError({
+          message: welcomeMessage,
+          code: 'AUDIO_NOT_AVAILABLE',
+          severity: 'info'
+        }, '🔊 音声メッセージ');
+        return;
       }
-    );
+      
+      const { sound } = await Audio.Sound.createAsync(audioSource);
+      await sound.playAsync();
+      
+      // 音声再生完了後にサウンドを解放
+      sound.setOnPlaybackStatusUpdate((status) => {
+        if (status.isLoaded && status.didJustFinish) {
+          sound.unloadAsync();
+        }
+      });
+    } catch (error) {
+      const appError = ErrorHandler.handleError(error, 'audio_playback');
+      ErrorHandler.showUserError(appError, '音声再生エラー');
+    }
   };
 
   if (isLoading) {
@@ -129,7 +152,7 @@ export default function SimpleTrainerSelection() {
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {trainers.map((trainer) => {
           const color = getTypeColor(trainer.type);
-          const emoji = getTypeEmoji(trainer.type);
+          const trainerImage = getTrainerImage(trainer.id);
           return (
             <TouchableOpacity
               key={trainer.id}
@@ -148,9 +171,27 @@ export default function SimpleTrainerSelection() {
               {/* トレーナー情報 */}
               <View style={styles.trainerHeader}>
                 <View style={[styles.avatarContainer, { borderColor: color, backgroundColor: color + '20' }]}>
-                  <View style={styles.trainerImagePlaceholder}>
-                    <Text style={styles.trainerImageEmoji}>{emoji}</Text>
-                  </View>
+                  {trainerImage ? (
+                    <Image
+                      source={trainerImage}
+                      style={styles.trainerImage}
+                      resizeMode="cover"
+                      onError={() => {
+                        console.warn(`画像の読み込みに失敗しました: ${trainer.id}`);
+                      }}
+                    />
+                  ) : (
+                    <View style={styles.trainerImagePlaceholder}>
+                      <Text style={styles.trainerImageText}>{trainer.name.charAt(0)}</Text>
+                      <Text style={styles.trainerTypeEmoji}>
+                        {trainer.type === 'energetic' ? '✨' :
+                         trainer.type === 'calm' ? '🌿' :
+                         trainer.type === 'strict' ? '💪' :
+                         trainer.type === 'gentle' ? '🌸' :
+                         trainer.type === 'motivational' ? '🔥' : '👤'}
+                      </Text>
+                    </View>
+                  )}
                 </View>
                 
                 <View style={styles.trainerInfo}>
@@ -305,6 +346,11 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     position: 'relative',
   },
+  trainerImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 47,
+  },
   trainerImagePlaceholder: {
     width: '100%',
     height: '100%',
@@ -312,9 +358,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderRadius: 47,
   },
-  trainerImageEmoji: {
-    fontSize: 40,
+  trainerImageText: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#333',
     textAlign: 'center',
+  },
+  trainerTypeEmoji: {
+    fontSize: 20,
+    textAlign: 'center',
+    marginTop: 4,
   },
   avatarEmoji: {
     fontSize: 12,

@@ -151,6 +151,7 @@
 | リソース | 説明 |
 |---------|------|
 | [トレーナー画像仕様](./assets/images/trainers/README.md) | キャラクター画像の仕様・要件 |
+| [トレーナー音声仕様](./assets/audio/trainers/README.md) | キャラクター音声の仕様・要件 |
 
 ---
 
