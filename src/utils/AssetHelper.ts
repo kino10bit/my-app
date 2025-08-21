@@ -8,16 +8,9 @@ import { AssetManager } from './AssetManager';
 /**
  * 新しいトレーナーアセットを追加するためのヘルパー関数
  * 
- * 使用例:
- * import { addNewTrainerAssets } from '../utils/AssetHelper';
- * 
- * // 新しいトレーナーを追加する場合
- * addNewTrainerAssets({
- *   'newTrainer': {
- *     image: '../../assets/images/trainers/newTrainer.png',
- *     audio: '../../assets/audio/trainers/newTrainer.mp3'
- *   }
- * });
+ * 注意：React Nativeでは動的なアセット追加はサポートされていません。
+ * 新しいアセットを追加するには、AssetManager.tsのTRAINER_IMAGESと
+ * TRAINER_AUDIOの定義を直接更新してください。
  */
 
 export interface TrainerAssetConfig {
@@ -28,20 +21,21 @@ export interface TrainerAssetConfig {
 }
 
 export function addNewTrainerAssets(config: TrainerAssetConfig): void {
-  const assetManager = AssetManager.getInstance();
+  console.warn('動的なアセット追加はサポートされていません。');
+  console.log('新しいアセットを追加する手順:');
+  console.log('1. assets/images/trainers/とassets/audio/trainers/にファイルを配置');
+  console.log('2. AssetManager.tsのTRAINER_IMAGESとTRAINER_AUDIOに追加');
+  console.log('3. アプリを再起動');
   
   Object.entries(config).forEach(([trainerId, assets]) => {
-    try {
-      assetManager.addTrainerAsset(trainerId, assets.image, assets.audio);
-      console.log(`✅ トレーナーアセット追加成功: ${trainerId}`);
-    } catch (error) {
-      console.error(`❌ トレーナーアセット追加失敗: ${trainerId}`, error);
-    }
+    console.log(`追加予定: ${trainerId}`);
+    if (assets.image) console.log(`  画像: ${assets.image}`);
+    if (assets.audio) console.log(`  棳声: ${assets.audio}`);
   });
 }
 
 /**
- * ファイル名から自動的にパスを生成してアセットを追加
+ * ファイル名から自動的にパスを生成して追加情報を表示
  * 
  * 使用例:
  * addTrainerAssetsByFilename(['newTrainer1', 'newTrainer2']);
@@ -56,6 +50,7 @@ export function addTrainerAssetsByFilename(trainerIds: string[]): void {
     };
   });
   
+  console.log('追加するトレーナーの情報:');
   addNewTrainerAssets(config);
 }
 

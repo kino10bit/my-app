@@ -1,6 +1,6 @@
 /**
  * アセット管理ユーティリティ
- * 画像・音声ファイルの動的読み込みとキャッシュ管理
+ * 画像・音声ファイルの静的読み込みとキャッシュ管理
  */
 
 export interface AssetPaths {
@@ -8,10 +8,35 @@ export interface AssetPaths {
   audio: { [key: string]: any };
 }
 
+// 静的なアセット定義
+const TRAINER_IMAGES = {
+  'akari': require('../../assets/images/trainers/akari.png'),
+  'isuzu': require('../../assets/images/trainers/isuzu.png'),
+  'kana': require('../../assets/images/trainers/kana.png'),
+  'mika': require('../../assets/images/trainers/mika.png'),
+  'rin': require('../../assets/images/trainers/rin.png'),
+  // 互換性のための古い名称マッピング
+  'shinji': require('../../assets/images/trainers/isuzu.png'),
+  'takumi': require('../../assets/images/trainers/kana.png'),
+  'miyuki': require('../../assets/images/trainers/mika.png'),
+  'daiki': require('../../assets/images/trainers/rin.png'),
+} as const;
+
+const TRAINER_AUDIO = {
+  'akari': require('../../assets/audio/trainers/akari.mp3'),
+  'isuzu': require('../../assets/audio/trainers/isuzu.mp3'),
+  'kana': require('../../assets/audio/trainers/kana.mp3'),
+  'mika': require('../../assets/audio/trainers/mika.mp3'),
+  'rin': require('../../assets/audio/trainers/rin.mp3'),
+  // 互換性のための古い名称マッピング
+  'shinji': require('../../assets/audio/trainers/isuzu.mp3'),
+  'takumi': require('../../assets/audio/trainers/kana.mp3'),
+  'miyuki': require('../../assets/audio/trainers/mika.mp3'),
+  'daiki': require('../../assets/audio/trainers/rin.mp3'),
+} as const;
+
 export class AssetManager {
   private static instance: AssetManager;
-  private imageCache: { [key: string]: any } = {};
-  private audioCache: { [key: string]: any } = {};
   private initialized = false;
 
   private constructor() {}
@@ -25,44 +50,16 @@ export class AssetManager {
 
   /**
    * アセットの初期化
-   * 利用可能な全ての画像・音声ファイルを検出してキャッシュに登録
+   * 静的に定義されたアセットをチェック
    */
   public initialize(): void {
     if (this.initialized) return;
 
     try {
-      // 現在利用可能な画像ファイル
-      this.imageCache = {
-        'akari': require('../../assets/images/trainers/akari.png'),
-        'isuzu': require('../../assets/images/trainers/isuzu.png'),
-        'kana': require('../../assets/images/trainers/kana.png'),
-        'mika': require('../../assets/images/trainers/mika.png'),
-        'rin': require('../../assets/images/trainers/rin.png'),
-        // 互換性のための古い名称マッピング
-        'shinji': require('../../assets/images/trainers/isuzu.png'),
-        'takumi': require('../../assets/images/trainers/kana.png'),
-        'miyuki': require('../../assets/images/trainers/mika.png'),
-        'daiki': require('../../assets/images/trainers/rin.png'),
-      };
-
-      // 現在利用可能な音声ファイル
-      this.audioCache = {
-        'akari': require('../../assets/audio/trainers/akari.mp3'),
-        'isuzu': require('../../assets/audio/trainers/isuzu.mp3'),
-        'kana': require('../../assets/audio/trainers/kana.mp3'),
-        'mika': require('../../assets/audio/trainers/mika.mp3'),
-        'rin': require('../../assets/audio/trainers/rin.mp3'),
-        // 互換性のための古い名称マッピング
-        'shinji': require('../../assets/audio/trainers/isuzu.mp3'),
-        'takumi': require('../../assets/audio/trainers/kana.mp3'),
-        'miyuki': require('../../assets/audio/trainers/mika.mp3'),
-        'daiki': require('../../assets/audio/trainers/rin.mp3'),
-      };
-
       this.initialized = true;
       console.log('AssetManager initialized successfully');
-      console.log('Available images:', Object.keys(this.imageCache));
-      console.log('Available audio:', Object.keys(this.audioCache));
+      console.log('Available images:', Object.keys(TRAINER_IMAGES));
+      console.log('Available audio:', Object.keys(TRAINER_AUDIO));
     } catch (error) {
       console.error('AssetManager initialization failed:', error);
     }
@@ -78,10 +75,10 @@ export class AssetManager {
       this.initialize();
     }
 
-    const image = this.imageCache[trainerId];
+    const image = TRAINER_IMAGES[trainerId as keyof typeof TRAINER_IMAGES];
     if (!image) {
       console.warn(`画像ファイルが見つかりません: ${trainerId}`);
-      console.log('利用可能な画像:', Object.keys(this.imageCache));
+      console.log('利用可能な画像:', Object.keys(TRAINER_IMAGES));
       return null;
     }
 
@@ -98,10 +95,10 @@ export class AssetManager {
       this.initialize();
     }
 
-    const audio = this.audioCache[trainerId];
+    const audio = TRAINER_AUDIO[trainerId as keyof typeof TRAINER_AUDIO];
     if (!audio) {
       console.warn(`音声ファイルが見つかりません: ${trainerId}`);
-      console.log('利用可能な音声:', Object.keys(this.audioCache));
+      console.log('利用可能な音声:', Object.keys(TRAINER_AUDIO));
       return null;
     }
 
@@ -109,23 +106,15 @@ export class AssetManager {
   }
 
   /**
-   * 新しいアセットの動的追加
-   * 将来的にファイルを追加する際に使用
+   * 新しいアセットの追加（注意：React Nativeでは静的にのみ可能）
+   * 新しいファイルを追加するには、TRAINER_IMAGESとTRAINER_AUDIOの定義を更新してください
    */
   public addTrainerAsset(trainerId: string, imagePath?: string, audioPath?: string): void {
-    try {
-      if (imagePath) {
-        this.imageCache[trainerId] = require(imagePath);
-        console.log(`画像追加成功: ${trainerId} -> ${imagePath}`);
-      }
-      
-      if (audioPath) {
-        this.audioCache[trainerId] = require(audioPath);
-        console.log(`音声追加成功: ${trainerId} -> ${audioPath}`);
-      }
-    } catch (error) {
-      console.error(`アセット追加失敗: ${trainerId}`, error);
-    }
+    console.warn('動的なアセット追加はサポートされていません。');
+    console.log('新しいアセットを追加するには、AssetManager.tsのTRAINER_IMAGESとTRAINER_AUDIOを更新してください。');
+    console.log(`追加しようとしたトレーナー: ${trainerId}`);
+    if (imagePath) console.log(`画像パス: ${imagePath}`);
+    if (audioPath) console.log(`音声パス: ${audioPath}`);
   }
 
   /**
@@ -137,8 +126,8 @@ export class AssetManager {
     }
 
     return {
-      images: { ...this.imageCache },
-      audio: { ...this.audioCache }
+      images: { ...TRAINER_IMAGES },
+      audio: { ...TRAINER_AUDIO }
     };
   }
 
@@ -154,12 +143,10 @@ export class AssetManager {
   }
 
   /**
-   * キャッシュのクリア
+   * 初期化状態のリセット
    */
   public clearCache(): void {
-    this.imageCache = {};
-    this.audioCache = {};
     this.initialized = false;
-    console.log('AssetManager cache cleared');
+    console.log('AssetManager reset');
   }
 }
