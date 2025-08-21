@@ -13,15 +13,25 @@ import { useAppContext } from '../context/AppContext';
 import { ErrorHandler } from '../utils/ErrorHandler';
 import { Validation } from '../utils/Validation';
 import { LoadingManager, LoadingKeys } from '../utils/LoadingManager';
+import { AssetManager } from '../utils/AssetManager';
+import { logAssetStatus, checkTrainerAssets } from '../utils/AssetHelper';
 
 
 export default function SimpleTrainerSelection() {
   const { selectedTrainer, trainers, audioService, isLoading, selectTrainer } = useAppContext();
   const [localSelectedTrainer, setLocalSelectedTrainer] = useState(selectedTrainer);
+  const assetManager = AssetManager.getInstance();
 
   useEffect(() => {
     setLocalSelectedTrainer(selectedTrainer);
-  }, [selectedTrainer]);
+    // AssetManagerの初期化
+    assetManager.initialize();
+    
+    // デバッグ: アセット状況をログ出力
+    if (__DEV__) {
+      logAssetStatus();
+    }
+  }, [selectedTrainer, assetManager]);
 
   const getTypeDisplayName = (type: string): string => {
     switch (type) {
@@ -46,27 +56,11 @@ export default function SimpleTrainerSelection() {
   };
 
   const getTrainerImage = (trainerId: string) => {
-    // プレースホルダー画像パス（実際の画像ファイルが利用可能になったら更新）
-    const imagePaths: { [key: string]: any } = {
-      'akari': null, // require('../../assets/images/trainers/akari.png'),
-      'shinji': null, // require('../../assets/images/trainers/shinji.png'),
-      'takumi': null, // require('../../assets/images/trainers/takumi.png'),
-      'miyuki': null, // require('../../assets/images/trainers/miyuki.png'),
-      'daiki': null, // require('../../assets/images/trainers/daiki.png'),
-    };
-    return imagePaths[trainerId] || null;
+    return assetManager.getTrainerImage(trainerId);
   };
 
   const getTrainerAudio = (trainerId: string) => {
-    // プレースホルダー音声パス（実際の音声ファイルが利用可能になったら更新）
-    const audioPaths: { [key: string]: any } = {
-      'akari': null, // require('../../assets/audio/trainers/akari.mp3'),
-      'shinji': null, // require('../../assets/audio/trainers/shinji.mp3'),
-      'takumi': null, // require('../../assets/audio/trainers/takumi.mp3'),
-      'miyuki': null, // require('../../assets/audio/trainers/miyuki.mp3'),
-      'daiki': null, // require('../../assets/audio/trainers/daiki.mp3'),
-    };
-    return audioPaths[trainerId] || null;
+    return assetManager.getTrainerAudio(trainerId);
   };
 
   const handleSelectTrainer = async (trainer: any) => {
@@ -104,32 +98,54 @@ export default function SimpleTrainerSelection() {
   };
 
   const playVoiceSample = async (trainer: any) => {
-    try {
-      const audioSource = getTrainerAudio(trainer.id);
-      if (!audioSource) {
-        // 音声ファイルがない場合は、トレーナーからのメッセージをテキストで表示
-        const welcomeMessage = `${trainer.name}：「${trainer.personality?.catchphrase || 'よろしくお願いします！'}」`;
-        ErrorHandler.showUserError({
-          message: welcomeMessage,
-          code: 'AUDIO_NOT_AVAILABLE',
-          severity: 'info'
-        }, '🔊 音声メッセージ');
-        return;
-      }
-      
-      const { sound } = await Audio.Sound.createAsync(audioSource);
-      await sound.playAsync();
-      
-      // 音声再生完了後にサウンドを解放
-      sound.setOnPlaybackStatusUpdate((status) => {
-        if (status.isLoaded && status.didJustFinish) {
-          sound.unloadAsync();
+    const loadingManager = LoadingManager.getInstance();
+    
+    await loadingManager.withLoading(
+      LoadingKeys.AUDIO_PLAY,
+      async () => {
+        try {
+          const audioSource = getTrainerAudio(trainer.id);
+          if (!audioSource) {
+            // 音声ファイルがない場合は、トレーナーからのメッセージをテキストで表示
+            const welcomeMessage = `${trainer.name}：「${trainer.personality?.catchphrase || 'よろしくお願いします！'}」`;
+            ErrorHandler.showUserError({
+              message: welcomeMessage,
+              code: 'AUDIO_NOT_AVAILABLE',
+              severity: 'info'
+            }, '🔊 音声メッセージ');
+            return false;
+          }
+          
+          const { sound } = await Audio.Sound.createAsync(audioSource);
+          await sound.playAsync();
+          
+          // 音声再生完了後にサウンドを解放
+          sound.setOnPlaybackStatusUpdate((status) => {
+            if (status.isLoaded && status.didJustFinish) {
+              sound.unloadAsync();
+            }
+          });
+          
+          return true;
+        } catch (error) {
+          console.error('音声再生エラー:', error);
+          // フォールバック: テキストメッセージ表示
+          const welcomeMessage = `${trainer.name}：「${trainer.personality?.catchphrase || 'よろしくお願いします！'}」`;
+          ErrorHandler.showUserError({
+            message: welcomeMessage,
+            code: 'AUDIO_PLAYBACK_FAILED',
+            severity: 'info'
+          }, '🔊 音声メッセージ');
+          return false;
         }
-      });
-    } catch (error) {
-      const appError = ErrorHandler.handleError(error, 'audio_playback');
-      ErrorHandler.showUserError(appError, '音声再生エラー');
-    }
+      },
+      {
+        errorHandler: (error) => {
+          const appError = ErrorHandler.handleError(error, 'audio_playback');
+          ErrorHandler.showUserError(appError, '音声再生エラー');
+        }
+      }
+    );
   };
 
   if (isLoading) {
@@ -176,8 +192,11 @@ export default function SimpleTrainerSelection() {
                       source={trainerImage}
                       style={styles.trainerImage}
                       resizeMode="cover"
-                      onError={() => {
-                        console.warn(`画像の読み込みに失敗しました: ${trainer.id}`);
+                      onError={(error) => {
+                        console.warn(`画像の読み込みに失敗しました: ${trainer.id}`, error);
+                      }}
+                      onLoad={() => {
+                        console.log(`画像読み込み成功: ${trainer.id}`);
                       }}
                     />
                   ) : (
