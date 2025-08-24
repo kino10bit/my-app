@@ -36,13 +36,19 @@ export default function SimpleTrainerSelection() {
       trainers.forEach((trainer, index) => {
         console.log(`${index + 1}. ${trainer.name}:`);
         console.log(`  - ID: ${trainer.id}`);
+        console.log(`  - 全プロパティ:`, Object.keys(trainer));
         console.log(`  - voicePrefix: ${trainer.voicePrefix}`);
+        console.log(`  - voice_prefix: ${trainer.voice_prefix}`);
         console.log(`  - avatarImageName: ${trainer.avatarImageName}`);
+        console.log(`  - avatar_image_name: ${trainer.avatar_image_name}`);
         console.log(`  - type: ${trainer.type}`);
+        console.log(`  - 実際のオブジェクト:`, JSON.stringify(trainer, null, 2));
       });
       
       // データベースリセットオプション（デバッグ用）
       // 既存の古いデータをクリアして新しいトレーナーデータで再作成
+      // リセットは既に実行されたのでコメントアウト
+      /*
       const resetData = async () => {
         await resetDatabaseWithNewTrainers();
         // データベースリセット後にデータを再読み込み
@@ -52,6 +58,7 @@ export default function SimpleTrainerSelection() {
         }, 1000);
       };
       resetData();
+      */
     }
   }, [selectedTrainer, assetManager]);
 
@@ -78,16 +85,61 @@ export default function SimpleTrainerSelection() {
   };
 
   const getTrainerImage = (trainer: any) => {
-    // voicePrefixまたはavatarImageNameを使用してファイルを取得
-    const imageKey = trainer.voicePrefix || trainer.avatarImageName || trainer.id;
+    // 複数のプロパティアクセス方法を試す
+    let imageKey;
+    
+    // 1. voicePrefixを優先して試す
+    if (trainer.voicePrefix && trainer.voicePrefix.trim() !== '') {
+      imageKey = trainer.voicePrefix;
+    }
+    // 2. avatarImageNameからファイル名を抽出
+    else if (trainer.avatarImageName && trainer.avatarImageName.trim() !== '') {
+      // .pngを取り除いてファイル名のベースを取得
+      imageKey = trainer.avatarImageName.replace('.png', '').replace('trainer_', '');
+    }
+    // 3. フォールバック: トレーナー名から推測
+    else {
+      // トレーナー名から推測（ひらがなをローマ字に変換）
+      const nameMap: { [key: string]: string } = {
+        'あかり': 'akari',
+        'いすず': 'isuzu',
+        'かな': 'kana',
+        'みか': 'mika',
+        'りん': 'rin'
+      };
+      imageKey = nameMap[trainer.name] || trainer.name;
+    }
+    
     console.log(`画像取得試行: ${trainer.name} -> imageKey: ${imageKey}`);
+    console.log(`  voicePrefix: ${trainer.voicePrefix}, avatarImageName: ${trainer.avatarImageName}`);
+    
     return assetManager.getTrainerImage(imageKey);
   };
 
   const getTrainerAudio = (trainer: any) => {
-    // voicePrefixを使用して音声ファイルを取得
-    const audioKey = trainer.voicePrefix || trainer.id;
+    // 複数のプロパティアクセス方法を試す
+    let audioKey;
+    
+    // 1. voicePrefixを優先して試す
+    if (trainer.voicePrefix && trainer.voicePrefix.trim() !== '') {
+      audioKey = trainer.voicePrefix;
+    }
+    // 2. フォールバック: トレーナー名から推測
+    else {
+      // トレーナー名から推測（ひらがなをローマ字に変換）
+      const nameMap: { [key: string]: string } = {
+        'あかり': 'akari',
+        'いすず': 'isuzu',
+        'かな': 'kana',
+        'みか': 'mika',
+        'りん': 'rin'
+      };
+      audioKey = nameMap[trainer.name] || trainer.name;
+    }
+    
     console.log(`音声取得試行: ${trainer.name} -> audioKey: ${audioKey}`);
+    console.log(`  voicePrefix: ${trainer.voicePrefix}`);
+    
     return assetManager.getTrainerAudio(audioKey);
   };
 
