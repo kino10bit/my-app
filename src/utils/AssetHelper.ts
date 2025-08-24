@@ -4,6 +4,7 @@
  */
 
 import { AssetManager } from './AssetManager';
+import { resetDatabase } from '../database/database';
 
 /**
  * 新しいトレーナーアセットを追加するためのヘルパー関数
@@ -102,4 +103,17 @@ export function checkTrainerAssets(trainerId: string): {
   }
   
   return { hasImage, hasAudio, status };
+}
+
+/**
+ * データベースをリセットして新しいトレーナーデータで再作成
+ */
+export async function resetDatabaseWithNewTrainers(): Promise<void> {
+  try {
+    console.log('データベースをリセット中...');
+    await resetDatabase();
+    console.log('データベースリセット完了！新しいトレーナーデータが作成されました。');
+  } catch (error) {
+    console.error('データベースリセットエラー:', error);
+  }
 }

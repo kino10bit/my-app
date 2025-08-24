@@ -14,7 +14,7 @@ import { ErrorHandler } from '../utils/ErrorHandler';
 import { Validation } from '../utils/Validation';
 import { LoadingManager, LoadingKeys } from '../utils/LoadingManager';
 import { AssetManager } from '../utils/AssetManager';
-import { logAssetStatus, checkTrainerAssets } from '../utils/AssetHelper';
+import { logAssetStatus, checkTrainerAssets, resetDatabaseWithNewTrainers } from '../utils/AssetHelper';
 
 
 export default function SimpleTrainerSelection() {
@@ -27,9 +27,22 @@ export default function SimpleTrainerSelection() {
     // AssetManagerの初期化
     assetManager.initialize();
     
-    // デバッグ: アセット状況をログ出力
+    // デバッグ: アセット状況とトレーナー情報をログ出力
     if (__DEV__) {
       logAssetStatus();
+      
+      // トレーナー情報の詳細デバッグ
+      console.log('=== トレーナーデータ詳細 ===');
+      trainers.forEach((trainer, index) => {
+        console.log(`${index + 1}. ${trainer.name}:`);
+        console.log(`  - ID: ${trainer.id}`);
+        console.log(`  - voicePrefix: ${trainer.voicePrefix}`);
+        console.log(`  - avatarImageName: ${trainer.avatarImageName}`);
+        console.log(`  - type: ${trainer.type}`);
+      });
+      
+      // データベースリセットオプション（デバッグ用）
+      // resetDatabaseWithNewTrainers();
     }
   }, [selectedTrainer, assetManager]);
 
@@ -55,12 +68,18 @@ export default function SimpleTrainerSelection() {
     }
   };
 
-  const getTrainerImage = (trainerId: string) => {
-    return assetManager.getTrainerImage(trainerId);
+  const getTrainerImage = (trainer: any) => {
+    // voicePrefixまたはavatarImageNameを使用してファイルを取得
+    const imageKey = trainer.voicePrefix || trainer.avatarImageName || trainer.id;
+    console.log(`画像取得試行: ${trainer.name} -> imageKey: ${imageKey}`);
+    return assetManager.getTrainerImage(imageKey);
   };
 
-  const getTrainerAudio = (trainerId: string) => {
-    return assetManager.getTrainerAudio(trainerId);
+  const getTrainerAudio = (trainer: any) => {
+    // voicePrefixを使用して音声ファイルを取得
+    const audioKey = trainer.voicePrefix || trainer.id;
+    console.log(`音声取得試行: ${trainer.name} -> audioKey: ${audioKey}`);
+    return assetManager.getTrainerAudio(audioKey);
   };
 
   const handleSelectTrainer = async (trainer: any) => {
@@ -104,7 +123,7 @@ export default function SimpleTrainerSelection() {
       LoadingKeys.AUDIO_PLAY,
       async () => {
         try {
-          const audioSource = getTrainerAudio(trainer.id);
+          const audioSource = getTrainerAudio(trainer);
           if (!audioSource) {
             // 音声ファイルがない場合は、トレーナーからのメッセージをテキストで表示
             const welcomeMessage = `${trainer.name}：「${trainer.personality?.catchphrase || 'よろしくお願いします！'}」`;
@@ -168,7 +187,7 @@ export default function SimpleTrainerSelection() {
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {trainers.map((trainer) => {
           const color = getTypeColor(trainer.type);
-          const trainerImage = getTrainerImage(trainer.id);
+          const trainerImage = getTrainerImage(trainer);
           return (
             <TouchableOpacity
               key={trainer.id}

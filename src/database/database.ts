@@ -145,12 +145,12 @@ async function seedInitialDataWeb(db: any): Promise<void> {
         return;
       }
 
-      // 最小限のトレーナーデータのみ作成
+      // 実際に利用可能なアセットファイルに対応したトレーナーデータ
       const trainerData = {
-        name: 'エナ',
+        name: 'あかり',
         type: 'energetic',
-        avatarImageName: 'trainer_ena.png',
-        voicePrefix: 'ena',
+        avatarImageName: 'akari.png',
+        voicePrefix: 'akari',
         description: '元気いっぱいでサポートします！',
       };
 
@@ -197,13 +197,13 @@ async function seedInitialData(db: any): Promise<void> {
       if (existingTrainers.length > 0) {
         console.log('Trainers already exist, skipping trainer seeding');
       } else {
-        // デフォルトトレーナーの作成
+        // 実際に利用可能なアセットファイルに対応したトレーナーデータ
         const defaultTrainers = [
           {
-            name: 'エナ',
+            name: 'あかり',
             type: 'energetic',
-            avatarImageName: 'trainer_ena.png',
-            voicePrefix: 'ena',
+            avatarImageName: 'akari.png',
+            voicePrefix: 'akari',
             description: '元気いっぱいでサポートします！',
             personality: {
               catchphrase: '今日も一緒に頑張ろう！',
@@ -213,16 +213,55 @@ async function seedInitialData(db: any): Promise<void> {
             }
           },
           {
-            name: 'カルム',
+            name: 'いすず',
             type: 'calm',
-            avatarImageName: 'trainer_calm.png',
-            voicePrefix: 'calm',
+            avatarImageName: 'isuzu.png',
+            voicePrefix: 'isuzu',
             description: '落ち着いてサポートします',
             personality: {
               catchphrase: '一歩ずつ、着実に進みましょう',
               encouragementStyle: '穏やかで安心感のある',
               celebrationStyle: '静かに喜びを表現',
               supportiveWords: ['素晴らしいですね', 'よく頑張りました', '順調ですね', 'その調子です']
+            }
+          },
+          {
+            name: 'かな',
+            type: 'strict',
+            avatarImageName: 'kana.png',
+            voicePrefix: 'kana',
+            description: '厳しくも愛情を持ってサポートします',
+            personality: {
+              catchphrase: '目標達成に向けて、しっかりとやりましょう',
+              encouragementStyle: '厳しくも心のこもった',
+              celebrationStyle: '適度な称賛と次の目標提示',
+              supportiveWords: ['よくやった', 'まだまだ', '次も頑張りなさい', 'その意気です']
+            }
+          },
+          {
+            name: 'みか',
+            type: 'gentle',
+            avatarImageName: 'mika.png',
+            voicePrefix: 'mika',
+            description: 'いつも優しく寄り添います',
+            personality: {
+              catchphrase: 'あなたのペースで大丈夫ですよ',
+              encouragementStyle: '優しく包み込むような',
+              celebrationStyle: '温かい喜びを表現',
+              supportiveWords: ['すばらしいです', 'よく頑張っていますね', '大丈夫ですよ', 'いつも応援しています']
+            }
+          },
+          {
+            name: 'りん',
+            type: 'motivational',
+            avatarImageName: 'rin.png',
+            voicePrefix: 'rin',
+            description: 'あなたのやる気を最大限に引き出します',
+            personality: {
+              catchphrase: '今日も最高の一日にしよう！',
+              encouragementStyle: '情熱的でエネルギッシュ',
+              celebrationStyle: '熱狂して喜びを表現',
+              supportiveWords: ['最高だ！', 'やる気満々だね！', '燃えてきた！', 'みんなで頑張ろう！']
             }
           }
         ];
@@ -231,7 +270,7 @@ async function seedInitialData(db: any): Promise<void> {
           await trainersCollection.create((trainer: any) => {
             trainer.name = trainerData.name;
             trainer.type = trainerData.type;
-            trainer.is_selected = trainerData.name === 'エナ'; // デフォルト選択
+            trainer.is_selected = trainerData.name === 'あかり'; // デフォルト選択
             trainer.avatar_image_name = trainerData.avatarImageName;
             trainer.voice_prefix = trainerData.voicePrefix;
             trainer.description = trainerData.description;

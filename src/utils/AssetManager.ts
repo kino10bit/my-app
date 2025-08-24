@@ -10,12 +10,22 @@ export interface AssetPaths {
 
 // 静的なアセット定義
 const TRAINER_IMAGES = {
+  // 実際のファイル名
   'akari': require('../../assets/images/trainers/akari.png'),
   'isuzu': require('../../assets/images/trainers/isuzu.png'),
   'kana': require('../../assets/images/trainers/kana.png'),
   'mika': require('../../assets/images/trainers/mika.png'),
   'rin': require('../../assets/images/trainers/rin.png'),
-  // 互換性のための古い名称マッピング
+  
+  // データベースのvoicePrefixに対応したマッピング
+  'ena': require('../../assets/images/trainers/akari.png'),     // エナ → akari
+  'calm': require('../../assets/images/trainers/isuzu.png'),    // カルム → isuzu
+  
+  // trainer_*.png 形式のavatarImageNameに対応
+  'trainer_ena.png': require('../../assets/images/trainers/akari.png'),
+  'trainer_calm.png': require('../../assets/images/trainers/isuzu.png'),
+  
+  // 互換性のための旧名称マッピング
   'shinji': require('../../assets/images/trainers/isuzu.png'),
   'takumi': require('../../assets/images/trainers/kana.png'),
   'miyuki': require('../../assets/images/trainers/mika.png'),
@@ -23,12 +33,18 @@ const TRAINER_IMAGES = {
 } as const;
 
 const TRAINER_AUDIO = {
+  // 実際のファイル名
   'akari': require('../../assets/audio/trainers/akari.mp3'),
   'isuzu': require('../../assets/audio/trainers/isuzu.mp3'),
   'kana': require('../../assets/audio/trainers/kana.mp3'),
   'mika': require('../../assets/audio/trainers/mika.mp3'),
   'rin': require('../../assets/audio/trainers/rin.mp3'),
-  // 互換性のための古い名称マッピング
+  
+  // データベースのvoicePrefixに対応したマッピング
+  'ena': require('../../assets/audio/trainers/akari.mp3'),      // エナ → akari
+  'calm': require('../../assets/audio/trainers/isuzu.mp3'),     // カルム → isuzu
+  
+  // 互換性のための旧名称マッピング
   'shinji': require('../../assets/audio/trainers/isuzu.mp3'),
   'takumi': require('../../assets/audio/trainers/kana.mp3'),
   'miyuki': require('../../assets/audio/trainers/mika.mp3'),
@@ -67,7 +83,7 @@ export class AssetManager {
 
   /**
    * トレーナー画像の取得
-   * @param trainerId トレーナーID
+   * @param trainerId トレーナーIDまたはvoicePrefixまたはavatarImageName
    * @returns 画像リソースまたはnull
    */
   public getTrainerImage(trainerId: string): any {
@@ -75,19 +91,22 @@ export class AssetManager {
       this.initialize();
     }
 
+    console.log(`AssetManager.getTrainerImage() called with: "${trainerId}"`);
+    
     const image = TRAINER_IMAGES[trainerId as keyof typeof TRAINER_IMAGES];
     if (!image) {
       console.warn(`画像ファイルが見つかりません: ${trainerId}`);
-      console.log('利用可能な画像:', Object.keys(TRAINER_IMAGES));
+      console.log('利用可能な画像キー:', Object.keys(TRAINER_IMAGES));
       return null;
     }
-
+    
+    console.log(`画像取得成功: ${trainerId}`);
     return image;
   }
 
   /**
    * トレーナー音声の取得
-   * @param trainerId トレーナーID
+   * @param trainerId トレーナーIDまたはvoicePrefix
    * @returns 音声リソースまたはnull
    */
   public getTrainerAudio(trainerId: string): any {
@@ -95,13 +114,16 @@ export class AssetManager {
       this.initialize();
     }
 
+    console.log(`AssetManager.getTrainerAudio() called with: "${trainerId}"`);
+    
     const audio = TRAINER_AUDIO[trainerId as keyof typeof TRAINER_AUDIO];
     if (!audio) {
       console.warn(`音声ファイルが見つかりません: ${trainerId}`);
-      console.log('利用可能な音声:', Object.keys(TRAINER_AUDIO));
+      console.log('利用可能な音声キー:', Object.keys(TRAINER_AUDIO));
       return null;
     }
-
+    
+    console.log(`音声取得成功: ${trainerId}`);
     return audio;
   }
 
