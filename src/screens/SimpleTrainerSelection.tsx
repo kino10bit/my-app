@@ -18,7 +18,7 @@ import { logAssetStatus, checkTrainerAssets, resetDatabaseWithNewTrainers } from
 
 
 export default function SimpleTrainerSelection() {
-  const { selectedTrainer, trainers, audioService, isLoading, selectTrainer } = useAppContext();
+  const { selectedTrainer, trainers, audioService, isLoading, selectTrainer, refreshData } = useAppContext();
   const [localSelectedTrainer, setLocalSelectedTrainer] = useState(selectedTrainer);
   const assetManager = AssetManager.getInstance();
 
@@ -42,7 +42,16 @@ export default function SimpleTrainerSelection() {
       });
       
       // データベースリセットオプション（デバッグ用）
-      // resetDatabaseWithNewTrainers();
+      // 既存の古いデータをクリアして新しいトレーナーデータで再作成
+      const resetData = async () => {
+        await resetDatabaseWithNewTrainers();
+        // データベースリセット後にデータを再読み込み
+        setTimeout(async () => {
+          await refreshData();
+          console.log('データ再読み込み完了');
+        }, 1000);
+      };
+      resetData();
     }
   }, [selectedTrainer, assetManager]);
 
