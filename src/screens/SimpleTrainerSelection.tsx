@@ -27,38 +27,21 @@ export default function SimpleTrainerSelection() {
     // AssetManagerの初期化
     assetManager.initialize();
     
-    // デバッグ: アセット状況とトレーナー情報をログ出力
+    // デバッグ: アセット状況をログ出力
     if (__DEV__) {
-      logAssetStatus();
-      
-      // トレーナー情報の詳細デバッグ
-      console.log('=== トレーナーデータ詳細 ===');
-      trainers.forEach((trainer, index) => {
-        console.log(`${index + 1}. ${trainer.name}:`);
-        console.log(`  - ID: ${trainer.id}`);
-        console.log(`  - 全プロパティ:`, Object.keys(trainer));
-        console.log(`  - voicePrefix: ${trainer.voicePrefix}`);
-        console.log(`  - voice_prefix: ${trainer.voice_prefix}`);
-        console.log(`  - avatarImageName: ${trainer.avatarImageName}`);
-        console.log(`  - avatar_image_name: ${trainer.avatar_image_name}`);
-        console.log(`  - type: ${trainer.type}`);
-        console.log(`  - 実際のオブジェクト:`, JSON.stringify(trainer, null, 2));
-      });
-      
-      // データベースリセットオプション（デバッグ用）
-      // 既存の古いデータをクリアして新しいトレーナーデータで再作成
-      // リセットは既に実行されたのでコメントアウト
-      /*
-      const resetData = async () => {
-        await resetDatabaseWithNewTrainers();
-        // データベースリセット後にデータを再読み込み
-        setTimeout(async () => {
-          await refreshData();
-          console.log('データ再読み込み完了');
-        }, 1000);
-      };
-      resetData();
-      */
+      try {
+        console.log('=== トレーナーデータ簡略 ===');
+        console.log(`トレーナー数: ${trainers.length}`);
+        trainers.forEach((trainer, index) => {
+          const shortId = trainer.id ? trainer.id.slice(0, 8) : 'N/A';
+          console.log(`${index + 1}. ${trainer.name || 'Unknown'} (ID: ${shortId}...)`);
+        });
+        
+        // アセット状況は安全な関数でのみ表示
+        logAssetStatus();
+      } catch (error) {
+        console.warn('デバッグ情報表示エラー:', error.message);
+      }
     }
   }, [selectedTrainer, assetManager]);
 
