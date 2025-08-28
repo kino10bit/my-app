@@ -174,6 +174,29 @@ export default function SimpleGoalCreation() {
           </TouchableOpacity>
         ))}
       </ScrollView>
+
+      <Text style={styles.stepInfo}>
+        ステップ {currentStep} / 3: 基本情報を入力してください
+      </Text>
+
+      {/* ステップ1専用の次へボタン */}
+      <View style={styles.stepButtonContainer}>
+        <TouchableOpacity
+          style={[
+            styles.stepButton,
+            (!formData.title || !formData.category) && styles.stepButtonDisabled
+          ]}
+          onPress={handleNext}
+          disabled={!formData.title || !formData.category}
+        >
+          <Text style={[
+            styles.stepButtonText,
+            (!formData.title || !formData.category) && styles.stepButtonTextDisabled
+          ]}>
+            次のステップへ →
+          </Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 
@@ -190,6 +213,36 @@ export default function SimpleGoalCreation() {
         multiline
         numberOfLines={4}
       />
+
+      <Text style={styles.stepInfo}>
+        ステップ {currentStep} / 3: 詳細を具体的に記述してください
+      </Text>
+
+      {/* ステップ2専用のボタン */}
+      <View style={styles.stepButtonContainer}>
+        <TouchableOpacity
+          style={styles.stepSecondaryButton}
+          onPress={handlePrevious}
+        >
+          <Text style={styles.stepSecondaryButtonText}>← 戻る</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity
+          style={[
+            styles.stepButton,
+            !formData.description.trim() && styles.stepButtonDisabled
+          ]}
+          onPress={handleNext}
+          disabled={!formData.description.trim()}
+        >
+          <Text style={[
+            styles.stepButtonText,
+            !formData.description.trim() && styles.stepButtonTextDisabled
+          ]}>
+            次のステップへ →
+          </Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 
@@ -217,6 +270,40 @@ export default function SimpleGoalCreation() {
           <Text style={styles.summaryLabel}>カテゴリ:</Text>
           <Text style={styles.summaryValue}>{formData.category}</Text>
         </View>
+      </View>
+
+      <Text style={styles.stepInfo}>
+        ステップ {currentStep} / 3: 最終確認です。「目標を作成」で完了します
+      </Text>
+
+      {/* ステップ3専用のボタン */}
+      <View style={styles.stepButtonContainer}>
+        <TouchableOpacity
+          style={styles.stepSecondaryButton}
+          onPress={handlePrevious}
+        >
+          <Text style={styles.stepSecondaryButtonText}>← 戻る</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity
+          style={[
+            styles.stepButton,
+            !formData.motivation.trim() && styles.stepButtonDisabled
+          ]}
+          onPress={handleSubmit}
+          disabled={!formData.motivation.trim() || isLoading}
+        >
+          {isLoading ? (
+            <ActivityIndicator color="white" size="small" />
+          ) : (
+            <Text style={[
+              styles.stepButtonText,
+              !formData.motivation.trim() && styles.stepButtonTextDisabled
+            ]}>
+              🎯 目標を作成
+            </Text>
+          )}
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -261,22 +348,38 @@ export default function SimpleGoalCreation() {
         {currentStep === 3 && renderStep3()}
       </ScrollView>
 
-      {/* フッターボタン */}
-      <View style={styles.footer}>
-        <TouchableOpacity
-          style={[styles.primaryButton, isLoading && styles.disabledButton]}
-          onPress={currentStep === 3 ? handleSubmit : handleNext}
-          disabled={isLoading}
-        >
-          {isLoading ? (
-            <ActivityIndicator color="white" />
-          ) : (
-            <Text style={styles.primaryButtonText}>
-              {currentStep === 3 ? '目標を作成' : '次へ'}
+      {/* フッターボタン (ステップ3では非表示) */}
+      {currentStep < 3 && (
+        <View style={styles.footer}>
+          {/* デバッグ情報 */}
+          {__DEV__ && (
+            <Text style={styles.debugText}>
+              Debug: currentStep={currentStep}, isLoading={isLoading}
             </Text>
           )}
-        </TouchableOpacity>
-      </View>
+          
+          <TouchableOpacity
+            style={[styles.primaryButton, isLoading && styles.disabledButton]}
+            onPress={handleNext}
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <ActivityIndicator color="white" />
+            ) : (
+              <Text style={styles.primaryButtonText}>次へ</Text>
+            )}
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* ステップ3のみ：デバッグ情報用のフッター */}
+      {currentStep === 3 && __DEV__ && (
+        <View style={styles.debugFooter}>
+          <Text style={styles.debugText}>
+            Debug: currentStep={currentStep}, isLoading={isLoading}
+          </Text>
+        </View>
+      )}
     </View>
   );
 }
@@ -436,5 +539,66 @@ const styles = StyleSheet.create({
   },
   disabledButton: {
     opacity: 0.6,
+  },
+  stepInfo: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+    marginTop: 20,
+    paddingHorizontal: 16,
+  },
+  debugText: {
+    fontSize: 12,
+    color: '#999',
+    textAlign: 'center',
+    marginBottom: 10,
+  },
+  stepButtonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 24,
+    paddingHorizontal: 16,
+  },
+  stepButton: {
+    backgroundColor: '#007AFF',
+    borderRadius: 8,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    flex: 1,
+    alignItems: 'center',
+    marginLeft: 8,
+  },
+  stepButtonDisabled: {
+    backgroundColor: '#cccccc',
+    opacity: 0.6,
+  },
+  stepButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  stepButtonTextDisabled: {
+    color: '#666666',
+  },
+  stepSecondaryButton: {
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: '#007AFF',
+    borderRadius: 8,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  stepSecondaryButtonText: {
+    color: '#007AFF',
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  debugFooter: {
+    backgroundColor: 'white',
+    padding: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#e0e0e0',
   },
 });
