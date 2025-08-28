@@ -126,7 +126,8 @@ export default function SimpleDashboard() {
   );
 
   const handleCompleteGoal = async (goal: GoalModel) => {
-    const isAlreadyCompleted = todayStamps.has(goal.id);
+    // データベースベースで今日完了済みかチェック
+    const isAlreadyCompleted = goal.isCompletedToday;
     
     try {
       if (!isAlreadyCompleted) {
@@ -138,10 +139,11 @@ export default function SimpleDashboard() {
           await goal.addStamp();
         });
         
+        // ローカル状態も更新（UI即時反映用）
         setTodayStamps(prev => new Set(prev).add(goal.id));
         
         // トレーナーからの音声メッセージを取得
-        const messageType = goal.isCompletedToday ? 'celebration' : 'encouragement';
+        const messageType = 'celebration'; // 完了時は祝福メッセージ
         const trainerMessage = selectedTrainer 
           ? audioService.getTrainerVoiceMessage(selectedTrainer.type, messageType)
           : 'おめでとうございます！';
@@ -162,14 +164,12 @@ export default function SimpleDashboard() {
         await loadStatistics();
         await refreshData();
       } else {
-        // 取り消し機能
-        setTodayStamps(prev => {
-          const newSet = new Set(prev);
-          newSet.delete(goal.id);
-          return newSet;
-        });
-        
-        Alert.alert('取り消し', 'スタンプを取り消しました');
+        // 既に完了済みの場合は操作無効
+        Alert.alert(
+          '既に完了済みです',
+          `${goal.title}は今日既に完了しています。\n明日また頑張りましょう！`,
+          [{ text: 'わかりました' }]
+        );
       }
     } catch (error) {
       console.error('Failed to handle goal completion:', error);
@@ -178,7 +178,8 @@ export default function SimpleDashboard() {
   };
 
   const { completedCount, totalCount, completionRate } = useMemoizedValue(() => {
-    const completed = goals.filter(goal => todayStamps.has(goal.id)).length;
+    // データベースベースで今日完了した目標をカウント
+    const completed = goals.filter(goal => goal.isCompletedToday).length;
     const total = goals.length;
     const rate = total > 0 ? Math.round((completed / total) * 100) : 0;
     return {
@@ -186,7 +187,7 @@ export default function SimpleDashboard() {
       totalCount: total,
       completionRate: rate
     };
-  }, [goals, todayStamps]);
+  }, [goals]); // todayStampsへの依存を削除
 
   const greeting = React.useMemo(() => {
     const currentHour = new Date().getHours();
@@ -194,6 +195,31 @@ export default function SimpleDashboard() {
     if (currentHour < 18) return 'こんにちは！';
     return 'こんばんは！';
   }, []);
+
+  // 日付変更の監視（深夜0時にUIを更新）
+  React.useEffect(() => {
+    const checkDateChange = () => {
+      const now = new Date();
+      const midnight = new Date();
+      midnight.setDate(midnight.getDate() + 1);
+      midnight.setHours(0, 0, 0, 0);
+      
+      const timeUntilMidnight = midnight.getTime() - now.getTime();
+      
+      const timer = setTimeout(() => {
+        console.log('Date changed - refreshing goal completion status');
+        // 日付が変わったらtodayStampsをリセット
+        setTodayStamps(new Set());
+        // データも再読み込み
+        refreshData();
+      }, timeUntilMidnight);
+      
+      return timer;
+    };
+    
+    const timer = checkDateChange();
+    return () => clearTimeout(timer);
+  }, [refreshData]);
 
   if (isLoading) {
     return (
@@ -272,12 +298,21 @@ export default function SimpleDashboard() {
           </View>
         ) : (
           goals.map(goal => {
-            const isCompleted = todayStamps.has(goal.id);
+            // データベースベースで今日完了済みかチェック
+            const isCompletedToday = goal.isCompletedToday;
+            
             return (
-              <View key={goal.id} style={styles.goalItem}>
+              <View key={goal.id} style={[
+                styles.goalItem,
+                isCompletedToday && styles.completedGoalItem
+              ]}>
                 <View style={styles.goalInfo}>
-                  <Text style={[styles.goalTitle, isCompleted && styles.completedGoal]}>
+                  <Text style={[
+                    styles.goalTitle, 
+                    isCompletedToday && styles.completedGoal
+                  ]}>
                     {goal.title}
+                    {isCompletedToday && ' ✅'}
                   </Text>
                   <Text style={styles.goalCategory}>{goal.category}</Text>
                   <View style={styles.goalStats}>
@@ -285,14 +320,26 @@ export default function SimpleDashboard() {
                       🎯 {goal.totalStamps}回 | 🔥 {goal.currentStreak}日連続
                     </Text>
                   </View>
+                  {isCompletedToday && (
+                    <Text style={styles.completedMessage}>
+                      今日は完了！お疲れさまでした 🎉
+                    </Text>
+                  )}
                 </View>
                 
                 <TouchableOpacity 
-                  style={[styles.button, isCompleted && styles.completedButton]}
+                  style={[
+                    styles.button, 
+                    isCompletedToday && styles.completedButton
+                  ]}
                   onPress={() => handleCompleteGoal(goal)}
+                  disabled={isCompletedToday}
                 >
-                  <Text style={[styles.buttonText, isCompleted && styles.completedButtonText]}>
-                    {isCompleted ? '完了済み' : '完了'}
+                  <Text style={[
+                    styles.buttonText, 
+                    isCompletedToday && styles.completedButtonText
+                  ]}>
+                    {isCompletedToday ? '完了済み' : '完了'}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -526,5 +573,15 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#333',
+  },
+  completedGoalItem: {
+    backgroundColor: '#f0f9f0',
+    borderColor: '#4CAF50',
+  },
+  completedMessage: {
+    fontSize: 12,
+    color: '#4CAF50',
+    fontWeight: '500',
+    marginTop: 4,
   },
 });
