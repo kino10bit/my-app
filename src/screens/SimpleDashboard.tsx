@@ -130,8 +130,14 @@ export default function SimpleDashboard() {
     
     try {
       if (!isAlreadyCompleted) {
-        // スタンプを追加（今後実装予定）
-        await goal.addStamp();
+        // スタンプを追加（WatermelonDB Writer内で実行）
+        const { getDatabase } = await import('../database/database');
+        const database = getDatabase();
+        
+        await database.write(async () => {
+          await goal.addStamp();
+        });
+        
         setTodayStamps(prev => new Set(prev).add(goal.id));
         
         // トレーナーからの音声メッセージを取得

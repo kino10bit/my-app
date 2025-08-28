@@ -55,8 +55,10 @@ export class GoalModel extends Model {
     );
   }
 
-  // アクションメソッド
+  // アクションメソッド（Writer内で呼び出される前提）
   async addStamp(): Promise<void> {
+    const currentLastStampDate = this.lastStampDate;
+    
     await this.update(goal => {
       goal.totalStamps += 1;
       goal.lastStampDate = new Date();
@@ -65,7 +67,7 @@ export class GoalModel extends Model {
       const yesterday = new Date();
       yesterday.setDate(yesterday.getDate() - 1);
       
-      if (this.lastStampDate && this.isConsecutiveDay(this.lastStampDate, yesterday)) {
+      if (currentLastStampDate && this.isConsecutiveDay(currentLastStampDate, yesterday)) {
         goal.currentStreak += 1;
         if (goal.currentStreak > goal.bestStreak) {
           goal.bestStreak = goal.currentStreak;
