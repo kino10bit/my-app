@@ -8,6 +8,7 @@ import {
   StyleSheet,
   ActivityIndicator,
   RefreshControl,
+  Image,
 } from 'react-native';
 import { useAppContext } from '../context/AppContext';
 import { GoalModel } from '../database/models';
@@ -122,6 +123,37 @@ export default function SimpleDashboard() {
         case 'motivational': return '🏃‍♂️🔥';
         default: return '👤';
       }
+    },
+    []
+  );
+
+  // トレーナー画像を取得する関数
+  const getTrainerImage = useMemoizedValue(
+    () => (trainer: any): any => {
+      if (!trainer) return null;
+      
+      const assetManager = AssetManager.getInstance();
+      
+      // トレーナー名から画像IDにマッピング
+      const getImageIdFromTrainer = (trainer: any): string => {
+        if (trainer.avatarImageName && trainer.avatarImageName.trim() !== '') {
+          return trainer.avatarImageName;
+        }
+        
+        // 名前から画像IDへのマッピング
+        const nameToImageId: { [key: string]: string } = {
+          'あかり': 'akari',
+          'いすず': 'isuzu',
+          'かな': 'kana',
+          'みか': 'mika',
+          'りん': 'rin'
+        };
+        
+        return nameToImageId[trainer.name] || trainer.name.toLowerCase();
+      };
+      
+      const imageId = getImageIdFromTrainer(trainer);
+      return assetManager.getTrainerImage(imageId);
     },
     []
   );
@@ -356,20 +388,45 @@ export default function SimpleDashboard() {
             <Text style={styles.title}>Appcadia</Text>
             <Text style={styles.subtitle}>{greeting}</Text>
           </View>
-          {selectedTrainer && (
-            <View style={styles.trainerInfo}>
-              <View style={[
-                styles.trainerAvatar, 
-                { 
-                  borderColor: getTrainerTypeColor(selectedTrainer.type), 
-                  backgroundColor: getTrainerTypeColor(selectedTrainer.type) + '20' 
-                }
-              ]}>
-                <Text style={styles.trainerEmoji}>{getTrainerTypeEmoji(selectedTrainer.type)}</Text>
-              </View>
-              <Text style={styles.trainerName}>{selectedTrainer.name}</Text>
-            </View>
-          )}
+          {(() => {
+            const displayTrainer = selectedTrainer || (trainers && trainers.length > 0 ? trainers[0] : null);
+            
+            if (displayTrainer) {
+              return (
+                <View style={styles.trainerInfo}>
+                  <View style={[
+                    styles.trainerAvatar, 
+                    { 
+                      borderColor: getTrainerTypeColor(displayTrainer.type), 
+                      backgroundColor: getTrainerTypeColor(displayTrainer.type) + '20' 
+                    }
+                  ]}>
+                    {(() => {
+                      const trainerImage = getTrainerImage(displayTrainer);
+                      return trainerImage ? (
+                        <Image
+                          source={trainerImage}
+                          style={styles.trainerImage}
+                          resizeMode="cover"
+                          onError={(error) => {
+                            console.warn(`Failed to load trainer image for ${displayTrainer.name}:`, error);
+                          }}
+                        />
+                      ) : (
+                        <Text style={styles.trainerEmoji}>{getTrainerTypeEmoji(displayTrainer.type)}</Text>
+                      );
+                    })()}
+                  </View>
+                  <Text style={styles.trainerName}>
+                    {displayTrainer.name}
+                    {!selectedTrainer && ' (デフォルト)'}
+                  </Text>
+                </View>
+              );
+            }
+            
+            return null;
+          })()}
         </View>
         <Text style={styles.trainerMessage}>
           {selectedTrainer?.personality.catchphrase || '今日も一緒にがんばりましょう！'}
@@ -537,6 +594,11 @@ const styles = StyleSheet.create({
   trainerEmoji: {
     fontSize: 28,
     textAlign: 'center',
+  },
+  trainerImage: {
+    width: 66,
+    height: 66,
+    borderRadius: 33,
   },
   trainerName: {
     fontSize: 12,
