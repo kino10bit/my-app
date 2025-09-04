@@ -8,12 +8,14 @@ import {
   StyleSheet,
   ActivityIndicator,
 } from 'react-native';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { useAppContext } from '../context/AppContext';
 import { ErrorHandler } from '../utils/ErrorHandler';
 import { Validation } from '../utils/Validation';
 import { LoadingManager, LoadingKeys } from '../utils/LoadingManager';
 
 export default function SimpleGoalCreation() {
+  const router = useRouter();
   const { refreshGoals } = useAppContext();
   const [currentStep, setCurrentStep] = useState(1);
   const [loadingManager] = useState(() => LoadingManager.getInstance());
@@ -26,6 +28,13 @@ export default function SimpleGoalCreation() {
 
     return unsubscribe;
   }, [loadingManager]);
+
+  // 画面にフォーカスが当たった時にフォームをリセット
+  useFocusEffect(
+    React.useCallback(() => {
+      resetForm();
+    }, [])
+  );
   const [formData, setFormData] = useState({
     title: '',
     category: '',
@@ -33,6 +42,8 @@ export default function SimpleGoalCreation() {
     motivation: '',
     difficulty: 3,
     targetEndDate: null as Date | null,
+    reminderTime: '09:00', // デフォルト時間
+    reminderEnabled: true, // リマインダーの有効/無効
   });
 
   const categories = [
@@ -45,7 +56,17 @@ export default function SimpleGoalCreation() {
     'その他',
   ];
 
-  const handleNext = () => {
+  // リマインド時間のオプション
+  const reminderTimeOptions = [
+    '06:00', '06:30', '07:00', '07:30', '08:00', '08:30', 
+    '09:00', '09:30', '10:00', '10:30', '11:00', '11:30',
+    '12:00', '12:30', '13:00', '13:30', '14:00', '14:30',
+    '15:00', '15:30', '16:00', '16:30', '17:00', '17:30',
+    '18:00', '18:30', '19:00', '19:30', '20:00', '20:30',
+    '21:00', '21:30', '22:00', '22:30'
+  ];
+
+  const handleNext = async () => {
     // Step 1 validation
     if (currentStep === 1) {
       const titleResult = Validation.validateField(formData.title, Validation.rules.goalTitle, 'タイトル');
@@ -58,21 +79,19 @@ export default function SimpleGoalCreation() {
       }
     }
     
-    // Step 2 validation
+    // Step 2 validation (リマインド設定) & Goal Creation
     if (currentStep === 2) {
-      const descriptionResult = Validation.validateField(
-        formData.description, 
-        Validation.rules.goalDescription, 
-        '目標の詳細'
-      );
-      
-      if (!descriptionResult.isValid) {
-        Validation.showValidationErrors(descriptionResult.errors);
+      if (formData.reminderEnabled && !formData.reminderTime) {
+        Validation.showValidationErrors(['リマインド時間を設定してください']);
         return;
       }
+      
+      // ステップ2で目標作成を実行
+      await handleCreateGoal();
+      return;
     }
     
-    if (currentStep < 3) {
+    if (currentStep < 2) {
       setCurrentStep(currentStep + 1);
     }
   };
@@ -80,6 +99,77 @@ export default function SimpleGoalCreation() {
   const handlePrevious = () => {
     if (currentStep > 1) {
       setCurrentStep(currentStep - 1);
+    }
+  };
+
+  const resetForm = () => {
+    setCurrentStep(1);
+    setFormData({
+      title: '',
+      category: '',
+      description: '',
+      motivation: '',
+      difficulty: 3,
+      targetEndDate: null,
+      reminderTime: '09:00',
+      reminderEnabled: true,
+    });
+  };
+
+  const handleCreateGoal = async () => {
+    // Basic validation for Step 2 completion
+    const titleResult = Validation.validateField(formData.title, Validation.rules.goalTitle, 'タイトル');
+    const categoryResult = Validation.validateField(formData.category, Validation.rules.category, 'カテゴリ');
+    
+    const errors = [...titleResult.errors, ...categoryResult.errors];
+    if (errors.length > 0) {
+      Validation.showValidationErrors(errors);
+      return;
+    }
+
+    const loadingManager = LoadingManager.getInstance();
+    
+    const result = await loadingManager.withLoading(
+      LoadingKeys.GOAL_CREATE,
+      async () => {
+        const { getDatabase } = await import('../database/database');
+        const database = getDatabase();
+        const goalCollection = database.collections.get('goals');
+        
+        await database.write(async () => {
+          await goalCollection.create((goal: any) => {
+            goal.title = formData.title;
+            goal.category = formData.category;
+            goal.targetDescription = ''; // Step 2で完了するため詳細は空
+            goal.motivation = ''; // Step 2で完了するためモチベーションは空
+            goal.difficulty = formData.difficulty;
+            goal.reminderTime = formData.reminderTime;
+            goal.reminderEnabled = formData.reminderEnabled;
+            goal.isActive = true;
+            goal.totalStamps = 0;
+            goal.currentStreak = 0;
+            goal.bestStreak = 0;
+            goal.targetEndDate = formData.targetEndDate;
+          });
+        });
+
+        // データを更新
+        await refreshGoals();
+        return true;
+      },
+      {
+        successMessage: `🎉 目標を作成しました！\n「${formData.title}」\n今日から一緒にがんばりましょう！`,
+        errorHandler: (error) => {
+          const appError = ErrorHandler.handleError(error, 'goal_creation');
+          ErrorHandler.showUserError(appError, '目標作成エラー');
+        }
+      }
+    );
+
+    if (result) {
+      // 成功時はフォームをリセットしてダッシュボードに遷移
+      resetForm();
+      router.replace('/(tabs)');
     }
   };
 
@@ -176,7 +266,7 @@ export default function SimpleGoalCreation() {
       </ScrollView>
 
       <Text style={styles.stepInfo}>
-        ステップ {currentStep} / 3: 基本情報を入力してください
+        ステップ {currentStep} / 2: 基本情報を入力してください
       </Text>
 
       {/* ステップ1専用の次へボタン */}
@@ -202,20 +292,62 @@ export default function SimpleGoalCreation() {
 
   const renderStep2 = () => (
     <View style={styles.stepContainer}>
-      <Text style={styles.stepTitle}>目標の詳細を教えてください</Text>
+      <Text style={styles.stepTitle}>リマインド設定</Text>
       
-      <Text style={styles.label}>具体的な目標 *</Text>
-      <TextInput
-        style={[styles.input, styles.textArea]}
-        placeholder="何を、どのくらい、いつまでに達成したいですか？"
-        value={formData.description}
-        onChangeText={(text) => setFormData({ ...formData, description: text })}
-        multiline
-        numberOfLines={4}
-      />
+      {/* リマインダー有効/無効 */}
+      <View style={styles.switchContainer}>
+        <Text style={styles.label}>リマインダーを使用する</Text>
+        <TouchableOpacity
+          style={[
+            styles.switch,
+            formData.reminderEnabled && styles.switchEnabled
+          ]}
+          onPress={() => setFormData({ 
+            ...formData, 
+            reminderEnabled: !formData.reminderEnabled 
+          })}
+        >
+          <View style={[
+            styles.switchThumb,
+            formData.reminderEnabled && styles.switchThumbEnabled
+          ]} />
+        </TouchableOpacity>
+      </View>
+
+      {formData.reminderEnabled && (
+        <>
+          <Text style={styles.label}>リマインド時間 *</Text>
+          <Text style={styles.helpText}>
+            毎日この時間にリマインダー通知が届きます
+          </Text>
+          
+          <ScrollView 
+            style={styles.timePickerContainer}
+            showsVerticalScrollIndicator={false}
+          >
+            {reminderTimeOptions.map((time) => (
+              <TouchableOpacity
+                key={time}
+                style={[
+                  styles.timeOption,
+                  formData.reminderTime === time && styles.timeOptionSelected
+                ]}
+                onPress={() => setFormData({ ...formData, reminderTime: time })}
+              >
+                <Text style={[
+                  styles.timeOptionText,
+                  formData.reminderTime === time && styles.timeOptionTextSelected
+                ]}>
+                  {time}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </>
+      )}
 
       <Text style={styles.stepInfo}>
-        ステップ {currentStep} / 3: 詳細を具体的に記述してください
+        ステップ {currentStep} / 2: リマインダーの設定を行います
       </Text>
 
       {/* ステップ2専用のボタン */}
@@ -230,17 +362,21 @@ export default function SimpleGoalCreation() {
         <TouchableOpacity
           style={[
             styles.stepButton,
-            !formData.description.trim() && styles.stepButtonDisabled
+            (formData.reminderEnabled && !formData.reminderTime) && styles.stepButtonDisabled
           ]}
           onPress={handleNext}
-          disabled={!formData.description.trim()}
+          disabled={formData.reminderEnabled && !formData.reminderTime}
         >
-          <Text style={[
-            styles.stepButtonText,
-            !formData.description.trim() && styles.stepButtonTextDisabled
-          ]}>
-            次のステップへ →
-          </Text>
+          {isLoading ? (
+            <ActivityIndicator color="white" size="small" />
+          ) : (
+            <Text style={[
+              styles.stepButtonText,
+              (formData.reminderEnabled && !formData.reminderTime) && styles.stepButtonTextDisabled
+            ]}>
+              🎯 目標を作成
+            </Text>
+          )}
         </TouchableOpacity>
       </View>
     </View>
@@ -273,10 +409,10 @@ export default function SimpleGoalCreation() {
       </View>
 
       <Text style={styles.stepInfo}>
-        ステップ {currentStep} / 3: 最終確認です。「目標を作成」で完了します
+        ステップ {currentStep} / 2: 最終確認です。「目標を作成」で完了します
       </Text>
 
-      {/* ステップ3専用のボタン */}
+      {/* ステップ2専用のボタン */}
       <View style={styles.stepButtonContainer}>
         <TouchableOpacity
           style={styles.stepSecondaryButton}
@@ -323,7 +459,7 @@ export default function SimpleGoalCreation() {
         
         <View style={styles.headerCenter}>
           <Text style={styles.headerTitle}>新しい目標</Text>
-          <Text style={styles.headerSubtitle}>ステップ {currentStep} / 3</Text>
+          <Text style={styles.headerSubtitle}>ステップ {currentStep} / 2</Text>
         </View>
         
         <View style={styles.headerRight} />
@@ -331,7 +467,7 @@ export default function SimpleGoalCreation() {
 
       {/* プログレスバー */}
       <View style={styles.progressContainer}>
-        {[1, 2, 3].map((step) => (
+        {[1, 2].map((step) => (
           <View
             key={step}
             style={[
@@ -345,11 +481,10 @@ export default function SimpleGoalCreation() {
       <ScrollView style={styles.content}>
         {currentStep === 1 && renderStep1()}
         {currentStep === 2 && renderStep2()}
-        {currentStep === 3 && renderStep3()}
       </ScrollView>
 
-      {/* フッターボタン (ステップ3では非表示) */}
-      {currentStep < 3 && (
+      {/* フッターボタン (ステップ2では非表示) */}
+      {currentStep < 2 && (
         <View style={styles.footer}>
           {/* デバッグ情報 */}
           {__DEV__ && (
@@ -372,7 +507,7 @@ export default function SimpleGoalCreation() {
         </View>
       )}
 
-      {/* ステップ3のみ：デバッグ情報用のフッター */}
+      {/* ステップ2のみ：デバッグ情報用のフッター */}
       {currentStep === 3 && __DEV__ && (
         <View style={styles.debugFooter}>
           <Text style={styles.debugText}>
@@ -600,5 +735,70 @@ const styles = StyleSheet.create({
     padding: 16,
     borderTopWidth: 1,
     borderTopColor: '#e0e0e0',
+  },
+  
+  // リマインド設定用スタイル
+  switchContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+    paddingVertical: 4,
+  },
+  switch: {
+    width: 50,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: '#ccc',
+    padding: 2,
+    justifyContent: 'center',
+  },
+  switchEnabled: {
+    backgroundColor: '#007AFF',
+  },
+  switchThumb: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: 'white',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  switchThumbEnabled: {
+    transform: [{ translateX: 24 }],
+  },
+  helpText: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 16,
+    lineHeight: 20,
+  },
+  timePickerContainer: {
+    maxHeight: 200,
+    marginBottom: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#ddd',
+  },
+  timeOption: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  timeOptionSelected: {
+    backgroundColor: '#007AFF',
+  },
+  timeOptionText: {
+    fontSize: 16,
+    color: '#333',
+    textAlign: 'center',
+  },
+  timeOptionTextSelected: {
+    color: 'white',
+    fontWeight: '600',
   },
 });
