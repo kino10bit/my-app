@@ -85,18 +85,23 @@ export class TrainerModel extends Model {
   async select(): Promise<void> {
     const allTrainers = await this.collections.get('trainers').query().fetch();
     
-    await this.batch(
-      // 他のトレーナーの選択を解除
-      ...allTrainers.map((trainer: any) =>
-        trainer.prepareUpdate((t: any) => {
+    // 他のトレーナーの選択を解除
+    const updatePromises = allTrainers.map(async (trainer: any) => {
+      if (trainer.id !== this.id && trainer.isSelected) {
+        await trainer.update((t: any) => {
           t.isSelected = false;
-        })
-      ),
-      // このトレーナーを選択
-      this.prepareUpdate(trainer => {
+        });
+      }
+    });
+    
+    await Promise.all(updatePromises);
+    
+    // このトレーナーを選択
+    if (!this.isSelected) {
+      await this.update(trainer => {
         trainer.isSelected = true;
-      })
-    );
+      });
+    }
   }
 
   async getAvailableVoiceMessages(): Promise<any[]> {

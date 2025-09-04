@@ -160,7 +160,12 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const selectTrainer = useCallback(async (trainer: TrainerModel) => {
     try {
       await PerformanceMonitor.measureAsync('selectTrainer', async () => {
-        await trainer.select();
+        // データベースのwriteトランザクション内でトレーナー選択を実行
+        const database = getDatabase();
+        await database.write(async () => {
+          await trainer.select();
+        });
+        
         setSelectedTrainer(trainer);
         
         // Clear trainer cache and refresh

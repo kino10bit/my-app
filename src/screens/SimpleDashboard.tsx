@@ -11,10 +11,11 @@ import {
 } from 'react-native';
 import { useAppContext } from '../context/AppContext';
 import { GoalModel } from '../database/models';
+import { AssetManager } from '../utils/AssetManager';
 import { MemoryOptimizer, PerformanceMonitor, useMemoizedValue, useStableCallback } from '../utils/PerformanceOptimizer';
 
 export default function SimpleDashboard() {
-  const { goals, selectedTrainer, audioService, isLoading, refreshData } = useAppContext();
+  const { goals, selectedTrainer, trainers, audioService, isLoading, refreshData } = useAppContext();
   const [refreshing, setRefreshing] = useState(false);
   const [todayStamps, setTodayStamps] = useState<Set<string>>(new Set());
   const [statistics, setStatistics] = useState({
@@ -126,6 +127,18 @@ export default function SimpleDashboard() {
   );
 
   const handleCompleteGoal = async (goal: GoalModel) => {
+    console.log('=== handleCompleteGoal called ===');
+    console.log('Goal:', goal.title);
+    console.log('selectedTrainer:', selectedTrainer ? {
+      id: selectedTrainer.id,
+      name: selectedTrainer.name,
+      voicePrefix: selectedTrainer.voicePrefix,
+      type: selectedTrainer.type,
+      isSelected: selectedTrainer.isSelected
+    } : null);
+    console.log('trainers count:', trainers?.length || 0);
+    console.log('audioService initialized:', audioService?.isInitialized);
+    
     // データベースベースで今日完了済みかチェック
     const isAlreadyCompleted = goal.isCompletedToday;
     
@@ -142,23 +155,123 @@ export default function SimpleDashboard() {
         // ローカル状態も更新（UI即時反映用）
         setTodayStamps(prev => new Set(prev).add(goal.id));
         
-        // トレーナーからの音声メッセージを取得
-        const messageType = 'celebration'; // 完了時は祝福メッセージ
-        const trainerMessage = selectedTrainer 
-          ? audioService.getTrainerVoiceMessage(selectedTrainer.type, messageType)
-          : 'おめでとうございます！';
-        
-        // 音声再生
-        if (selectedTrainer) {
-          const fileName = `${selectedTrainer.voicePrefix}_${messageType}`;
-          audioService.playTrainerVoice(fileName, `${selectedTrainer.name}：「${trainerMessage}」`);
+        // トレーナーの完了音声を再生
+        if (selectedTrainer && audioService) {
+          console.log('selectedTrainer:', {
+            id: selectedTrainer.id,
+            name: selectedTrainer.name,
+            voicePrefix: selectedTrainer.voicePrefix,
+            type: selectedTrainer.type
+          });
+          
+          // トレーナー名から音声IDにマッピング
+          const getVoiceIdFromTrainer = (trainer: any): string => {
+            if (trainer.voicePrefix && trainer.voicePrefix.trim() !== '') {
+              return trainer.voicePrefix;
+            }
+            
+            // 名前から音声IDへのマッピング
+            const nameToVoiceId: { [key: string]: string } = {
+              'あかり': 'akari',
+              'いすず': 'isuzu', 
+              'かな': 'kana',
+              'みか': 'mika',
+              'りん': 'rin'
+            };
+            
+            return nameToVoiceId[trainer.name] || trainer.name.toLowerCase();
+          };
+          
+          const trainerId = getVoiceIdFromTrainer(selectedTrainer);
+          console.log(`Playing completion voice for trainer: ${trainerId} (mapped from name: ${selectedTrainer.name})`);
+          
+          // 音声再生を実行（非同期で実行してUIをブロックしない）
+          audioService.playTrainerCompletionVoice(trainerId).then((success) => {
+            if (success) {
+              console.log('Completion voice played successfully');
+            } else {
+              console.warn('Failed to play completion voice');
+            }
+          }).catch((error) => {
+            console.error('Error playing completion voice:', error);
+          });
+          
+          // テキストメッセージを取得
+          const messageType = 'celebration';
+          const trainerMessage = audioService.getTrainerVoiceMessage(selectedTrainer.type, messageType);
+          
+          Alert.alert(
+            '🎉 スタンプゲット！',
+            `${selectedTrainer.name}：「${trainerMessage}」\n\n${goal.title}を完了しました！`,
+            [{ text: 'ありがとう！' }]
+          );
+        } else {
+          console.warn('selectedTrainer or audioService is null:', {
+            selectedTrainer: selectedTrainer,
+            audioService: audioService
+          });
+          
+          // フォールバック: デフォルトトレーナーで音声再生を試行
+          if (audioService && trainers && trainers.length > 0) {
+            const defaultTrainer = trainers[0]; // 最初のトレーナーをデフォルトとして使用
+            
+            // トレーナー名から音声IDにマッピング（フォールバック用）
+            const getVoiceIdFromTrainer = (trainer: any): string => {
+              if (trainer.voicePrefix && trainer.voicePrefix.trim() !== '') {
+                return trainer.voicePrefix;
+              }
+              
+              // 名前から音声IDへのマッピング
+              const nameToVoiceId: { [key: string]: string } = {
+                'あかり': 'akari',
+                'いすず': 'isuzu', 
+                'かな': 'kana',
+                'みか': 'mika',
+                'りん': 'rin'
+              };
+              
+              return nameToVoiceId[trainer.name] || trainer.name.toLowerCase();
+            };
+            
+            const trainerId = getVoiceIdFromTrainer(defaultTrainer);
+            console.log(`=== Fallback to default trainer ===`);
+            console.log('Default trainer:', {
+              id: defaultTrainer.id,
+              name: defaultTrainer.name,
+              voicePrefix: defaultTrainer.voicePrefix,
+              type: defaultTrainer.type
+            });
+            console.log(`Using trainerId for completion voice: ${trainerId} (mapped from name: ${defaultTrainer.name})`);
+            
+            audioService.playTrainerCompletionVoice(trainerId).then((success) => {
+              if (success) {
+                console.log('Default trainer completion voice played successfully');
+              } else {
+                console.warn('Failed to play default trainer completion voice');
+              }
+            }).catch((error) => {
+              console.error('Error playing default trainer completion voice:', error);
+            });
+            
+            const trainerMessage = audioService.getTrainerVoiceMessage(defaultTrainer.type, 'celebration');
+            Alert.alert(
+              '🎉 スタンプゲット！',
+              `${defaultTrainer.name}：「${trainerMessage}」\n\n${goal.title}を完了しました！`,
+              [{ text: 'ありがとう！' }]
+            );
+          } else {
+            // トレーナーが全く利用できない場合のフォールバック
+            console.log('=== No trainers available ===');
+            console.log('audioService:', !!audioService);
+            console.log('trainers:', trainers);
+            Alert.alert(
+              '🎉 スタンプゲット！',
+              `${goal.title}を完了しました！`,
+              [{ text: 'OK' }]
+            );
+          }
         }
         
-        Alert.alert(
-          '🎉 スタンプゲット！',
-          `${selectedTrainer?.name || 'トレーナー'}：「${trainerMessage}」\n\n${goal.title}を完了しました！`,
-          [{ text: 'ありがとう！' }]
-        );
         
         // 統計を更新
         await loadStatistics();
@@ -207,7 +320,7 @@ export default function SimpleDashboard() {
       const timeUntilMidnight = midnight.getTime() - now.getTime();
       
       const timer = setTimeout(() => {
-        console.log('Date changed - refreshing goal completion status');
+          console.log('Date changed - refreshing goal completion status');
         // 日付が変わったらtodayStampsをリセット
         setTodayStamps(new Set());
         // データも再読み込み

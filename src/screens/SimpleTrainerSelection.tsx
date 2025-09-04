@@ -127,7 +127,13 @@ export default function SimpleTrainerSelection() {
   };
 
   const handleSelectTrainer = async (trainer: any) => {
-    setLocalSelectedTrainer(trainer);
+    try {
+      setLocalSelectedTrainer(trainer);
+      // AppContextの選択状態も更新
+      await selectTrainer(trainer);
+    } catch (error) {
+      console.error('Failed to select trainer:', error);
+    }
   };
 
   const handleConfirmSelection = async () => {
