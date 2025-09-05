@@ -90,6 +90,7 @@ export class StampDataLoader {
   async clearAllStamps(): Promise<void> {
     try {
       const allStamps = await this.database.get<StampModel>('stamps').query().fetch();
+      const allGoals = await this.database.get<GoalModel>('goals').query().fetch();
       
       if (allStamps.length === 0) {
         console.log('No stamps to clear');
@@ -97,10 +98,20 @@ export class StampDataLoader {
       }
 
       await this.database.write(async () => {
+        // スタンプを削除
         await Promise.all(allStamps.map(stamp => stamp.markAsDeleted()));
+        
+        // 目標のスタンプ統計もリセット
+        await Promise.all(allGoals.map(async goal => {
+          await goal.update(g => {
+            g.totalStamps = 0;
+            g.currentStreak = 0;
+            g.bestStreak = 0;
+          });
+        }));
       });
 
-      console.log(`Cleared ${allStamps.length} stamps`);
+      console.log(`Cleared ${allStamps.length} stamps and reset goal statistics`);
     } catch (error) {
       console.error('Failed to clear stamps:', error);
       throw new Error('Stamp clearing failed');

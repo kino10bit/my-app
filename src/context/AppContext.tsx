@@ -74,17 +74,17 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         }
       }
       
-      // データベースが正常に初期化された場合のみサンプルデータを読み込む
+      // データベースが正常に初期化された場合、既存のスタンプを削除して0からスタート
       if (initializedDatabase && initializedDatabase.collections) {
         try {
           const stampDataLoader = new StampDataLoader();
-          await stampDataLoader.loadSampleData();
-          console.log('Sample data initialization completed');
+          await stampDataLoader.clearAllStamps();
+          console.log('Cleared all existing stamps - starting fresh');
         } catch (error) {
-          console.warn('Sample data loading failed, continuing without sample data:', error);
+          console.warn('Failed to clear stamps, continuing:', error);
         }
       } else {
-        console.warn('Database not available, skipping sample data loading');
+        console.warn('Database not available, skipping stamp clearing');
       }
       
       // その後でデータローディングとオーディオ初期化を実行

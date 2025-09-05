@@ -20,23 +20,43 @@ export const StampCardCollection: React.FC<StampCardCollectionProps> = ({
 }) => {
   const { colors } = useTheme();
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
+  
+  // 新しいカードが追加された時に自動的に最新のカードに移動
+  React.useEffect(() => {
+    if (stamps.length > 0) {
+      const latestCardIndex = Math.floor((stamps.length - 1) / slotsPerCard);
+      setCurrentCardIndex(latestCardIndex);
+    }
+  }, [stamps.length, slotsPerCard]);
 
   // スタンプをカード毎に分割
   const cardData = useMemo(() => {
     const cards = [];
-    const totalCards = Math.max(1, Math.ceil(stamps.length / slotsPerCard) + 1); // +1 for current card
     
-    for (let i = 0; i < totalCards; i++) {
-      const startIndex = i * slotsPerCard;
-      const endIndex = startIndex + slotsPerCard;
-      const cardStamps = stamps.slice(startIndex, endIndex);
-      
+    // スタンプが0個の場合は最低1枚のカードを表示
+    if (stamps.length === 0) {
       cards.push({
-        cardNumber: i + 1,
-        stamps: cardStamps,
-        isCompleted: cardStamps.length >= slotsPerCard,
-        isCurrent: i === Math.floor(stamps.length / slotsPerCard)
+        cardNumber: 1,
+        stamps: [],
+        isCompleted: false,
+        isCurrent: true
       });
+    } else {
+      // 必要なカード数を計算（現在のスタンプ数に基づいて）
+      const totalCards = Math.ceil(stamps.length / slotsPerCard);
+      
+      for (let i = 0; i < totalCards; i++) {
+        const startIndex = i * slotsPerCard;
+        const endIndex = startIndex + slotsPerCard;
+        const cardStamps = stamps.slice(startIndex, endIndex);
+        
+        cards.push({
+          cardNumber: i + 1,
+          stamps: cardStamps,
+          isCompleted: cardStamps.length >= slotsPerCard,
+          isCurrent: i === Math.floor((stamps.length - 1) / slotsPerCard)
+        });
+      }
     }
     
     return cards;
