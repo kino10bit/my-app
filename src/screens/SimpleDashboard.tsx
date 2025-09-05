@@ -10,13 +10,17 @@ import {
   RefreshControl,
   Image,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 import { useAppContext } from '../context/AppContext';
 import { GoalModel } from '../database/models';
 import { AssetManager } from '../utils/AssetManager';
+import { StampService } from '../services/StampService';
+import { StampAnimation } from '../components/StampAnimation';
 import { MemoryOptimizer, PerformanceMonitor, useMemoizedValue, useStableCallback } from '../utils/PerformanceOptimizer';
 
 export default function SimpleDashboard() {
   const { goals, selectedTrainer, trainers, audioService, isLoading, refreshData } = useAppContext();
+  const router = useRouter();
   const [refreshing, setRefreshing] = useState(false);
   const [todayStamps, setTodayStamps] = useState<Set<string>>(new Set());
   const [statistics, setStatistics] = useState({
@@ -25,6 +29,10 @@ export default function SimpleDashboard() {
     bestStreak: 0,
     activeGoals: 0
   });
+  const [showStampAnimation, setShowStampAnimation] = useState(false);
+  const [currentCompletedGoal, setCurrentCompletedGoal] = useState<GoalModel | null>(null);
+  
+  const stampService = new StampService();
 
   const memoizedStatistics = useMemoizedValue(() => statistics, [statistics]);
 
@@ -161,31 +169,30 @@ export default function SimpleDashboard() {
   const handleCompleteGoal = async (goal: GoalModel) => {
     console.log('=== handleCompleteGoal called ===');
     console.log('Goal:', goal.title);
-    console.log('selectedTrainer:', selectedTrainer ? {
-      id: selectedTrainer.id,
-      name: selectedTrainer.name,
-      voicePrefix: selectedTrainer.voicePrefix,
-      type: selectedTrainer.type,
-      isSelected: selectedTrainer.isSelected
-    } : null);
-    console.log('trainers count:', trainers?.length || 0);
-    console.log('audioService initialized:', audioService?.isInitialized);
     
     // データベースベースで今日完了済みかチェック
     const isAlreadyCompleted = goal.isCompletedToday;
     
     try {
       if (!isAlreadyCompleted) {
-        // スタンプを追加（WatermelonDB Writer内で実行）
-        const { getDatabase } = await import('../database/database');
-        const database = getDatabase();
+        // スタンプアニメーション用の目標を設定
+        setCurrentCompletedGoal(goal);
+        setShowStampAnimation(true);
         
-        await database.write(async () => {
-          await goal.addStamp();
+        // 新しいスタンプを作成
+        await stampService.createStamp(goal.id, {
+          stampType: 'daily',
+          mood: 'happy',
+          difficulty: 3,
+          note: `${goal.title}を完了しました！`
         });
         
         // ローカル状態も更新（UI即時反映用）
         setTodayStamps(prev => new Set(prev).add(goal.id));
+        
+        // データを再読み込みして統計と目標状態を更新
+        await loadStatistics();
+        await refreshData();
         
         // トレーナーの完了音声を再生
         if (selectedTrainer && audioService) {
@@ -227,16 +234,6 @@ export default function SimpleDashboard() {
           }).catch((error) => {
             console.error('Error playing completion voice:', error);
           });
-          
-          // テキストメッセージを取得
-          const messageType = 'celebration';
-          const trainerMessage = audioService.getTrainerVoiceMessage(selectedTrainer.type, messageType);
-          
-          Alert.alert(
-            '🎉 スタンプゲット！',
-            `${selectedTrainer.name}：「${trainerMessage}」\n\n${goal.title}を完了しました！`,
-            [{ text: 'ありがとう！' }]
-          );
         } else {
           console.warn('selectedTrainer or audioService is null:', {
             selectedTrainer: selectedTrainer,
@@ -284,30 +281,14 @@ export default function SimpleDashboard() {
             }).catch((error) => {
               console.error('Error playing default trainer completion voice:', error);
             });
-            
-            const trainerMessage = audioService.getTrainerVoiceMessage(defaultTrainer.type, 'celebration');
-            Alert.alert(
-              '🎉 スタンプゲット！',
-              `${defaultTrainer.name}：「${trainerMessage}」\n\n${goal.title}を完了しました！`,
-              [{ text: 'ありがとう！' }]
-            );
           } else {
             // トレーナーが全く利用できない場合のフォールバック
             console.log('=== No trainers available ===');
             console.log('audioService:', !!audioService);
             console.log('trainers:', trainers);
-            Alert.alert(
-              '🎉 スタンプゲット！',
-              `${goal.title}を完了しました！`,
-              [{ text: 'OK' }]
-            );
           }
         }
         
-        
-        // 統計を更新
-        await loadStatistics();
-        await refreshData();
       } else {
         // 既に完了済みの場合は操作無効
         Alert.alert(
@@ -320,6 +301,15 @@ export default function SimpleDashboard() {
       console.error('Failed to handle goal completion:', error);
       Alert.alert('エラー', 'スタンプの処理に失敗しました');
     }
+  };
+
+  // スタンプアニメーション完了時の処理
+  const handleAnimationComplete = () => {
+    setShowStampAnimation(false);
+    setCurrentCompletedGoal(null);
+    
+    // スタンプ画面に遷移
+    router.push('/stamps');
   };
 
   const { completedCount, totalCount, completionRate } = useMemoizedValue(() => {
@@ -548,6 +538,15 @@ export default function SimpleDashboard() {
           </View>
         </View>
       </View>
+      
+      {/* スタンプアニメーション */}
+      {showStampAnimation && currentCompletedGoal && (
+        <StampAnimation
+          goalTitle={currentCompletedGoal.title}
+          mood="happy"
+          onComplete={handleAnimationComplete}
+        />
+      )}
     </ScrollView>
   );
 }

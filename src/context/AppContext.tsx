@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import { getDatabase } from '../database/database';
 import { GoalModel, TrainerModel } from '../database/models';
 import { AudioService } from '../services/AudioService';
+import { StampDataLoader } from '../services/StampDataLoader';
 import { MemoryOptimizer, PerformanceMonitor } from '../utils/PerformanceOptimizer';
 
 interface AppContextType {
@@ -45,6 +46,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const [goals, setGoals] = useState<GoalModel[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [audioService] = useState(() => new AudioService());
+  const [database, setDatabase] = useState<any>(null);
+  const [DatabaseProvider, setDatabaseProvider] = useState<any>(null);
 
   useEffect(() => {
     initializeApp();
@@ -55,8 +58,34 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     try {
       // まずデータベースを初期化
       const { initializeDatabase } = await import('../database/database');
-      await initializeDatabase();
+      const initializedDatabase = await initializeDatabase();
       console.log('Database initialization completed in AppContext');
+      
+      // データベースをstateに保存
+      setDatabase(initializedDatabase);
+      
+      // DatabaseProviderを動的にインポート
+      if (initializedDatabase) {
+        try {
+          const { DatabaseProvider: DbProvider } = await import('@nozbe/watermelondb/react');
+          setDatabaseProvider(() => DbProvider);
+        } catch (error) {
+          console.warn('Failed to import DatabaseProvider:', error);
+        }
+      }
+      
+      // データベースが正常に初期化された場合のみサンプルデータを読み込む
+      if (initializedDatabase && initializedDatabase.collections) {
+        try {
+          const stampDataLoader = new StampDataLoader();
+          await stampDataLoader.loadSampleData();
+          console.log('Sample data initialization completed');
+        } catch (error) {
+          console.warn('Sample data loading failed, continuing without sample data:', error);
+        }
+      } else {
+        console.warn('Database not available, skipping sample data loading');
+      }
       
       // その後でデータローディングとオーディオ初期化を実行
       await Promise.all([
@@ -206,7 +235,13 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   return (
     <AppContext.Provider value={contextValue}>
-      {children}
+      {database && DatabaseProvider ? (
+        <DatabaseProvider database={database}>
+          {children}
+        </DatabaseProvider>
+      ) : (
+        children
+      )}
     </AppContext.Provider>
   );
 };

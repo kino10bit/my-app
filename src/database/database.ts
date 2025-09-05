@@ -3,6 +3,7 @@ let Database: any;
 let dbSchema: any;
 let GoalModel: any;
 let TrainerModel: any;
+let StampModel: any;
 
 import { Platform } from 'react-native';
 
@@ -35,6 +36,7 @@ async function loadWatermelonDB() {
     const modelsModule = await import('./models');
     GoalModel = modelsModule.GoalModel;
     TrainerModel = modelsModule.TrainerModel;
+    StampModel = modelsModule.StampModel;
   }
 }
 
@@ -74,6 +76,7 @@ export async function initializeDatabase(): Promise<any> {
       modelClasses: [
         GoalModel,
         TrainerModel,
+        StampModel,
         // 他のモデルクラスもここに追加
       ],
     });
