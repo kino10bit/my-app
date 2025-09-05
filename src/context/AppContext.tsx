@@ -109,6 +109,24 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         const selected = cachedTrainers.find(t => t.isSelected);
         if (selected) {
           setSelectedTrainer(selected);
+          console.log(`Previously selected trainer loaded from cache: ${selected.name}`);
+        } else if (cachedTrainers.length > 0) {
+          // キャッシュからも選択されたトレーナーがない場合、「あかり」をデフォルトに設定
+          const akariTrainer = cachedTrainers.find(t => t.name === 'あかり');
+          const defaultTrainer = akariTrainer || cachedTrainers[0];
+          
+          // データベースで選択状態を更新
+          const database = getDatabase();
+          if (database) {
+            await database.write(async () => {
+              await defaultTrainer.update(trainer => {
+                trainer.isSelected = true;
+              });
+            });
+          }
+          
+          setSelectedTrainer(defaultTrainer);
+          console.log(`Default trainer selected from cache: ${defaultTrainer.name}`);
         }
         return;
       }
@@ -132,6 +150,21 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         const selected = allTrainers.find(t => t.isSelected);
         if (selected) {
           setSelectedTrainer(selected);
+          console.log(`Previously selected trainer loaded from database: ${selected.name}`);
+        } else if (allTrainers.length > 0) {
+          // 選択されたトレーナーがない場合、「あかり」をデフォルトに設定
+          const akariTrainer = allTrainers.find(t => t.name === 'あかり');
+          const defaultTrainer = akariTrainer || allTrainers[0]; // あかりがいない場合は最初のトレーナー
+          
+          // データベースで選択状態を更新
+          await database.write(async () => {
+            await defaultTrainer.update(trainer => {
+              trainer.isSelected = true;
+            });
+          });
+          
+          setSelectedTrainer(defaultTrainer);
+          console.log(`Default trainer selected: ${defaultTrainer.name}`);
         }
       });
     } catch (error) {

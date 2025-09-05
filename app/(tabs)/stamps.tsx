@@ -107,12 +107,6 @@ export default function StampsScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.contentContainer}>
-        <View style={styles.header}>
-          <Text style={[styles.title, { color: colors.text }]}>獲得スタンプ</Text>
-          <Text style={[styles.subtitle, { color: colors.text }]}>
-            今まで獲得したスタンプを確認できます
-          </Text>
-        </View>
 
         {/* スタンプカードコレクション */}
         <StampCardCollection 
@@ -191,9 +185,10 @@ const styles = StyleSheet.create({
   contentContainer: {
     flexGrow: 1,
     padding: 16,
+    paddingBottom: 100, // タブナビゲーション分の余白を追加
   },
   header: {
-    marginBottom: 24,
+    marginBottom: 16,
   },
   title: {
     fontSize: 28,

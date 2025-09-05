@@ -366,8 +366,10 @@ export default function SimpleDashboard() {
   }
 
   return (
+    <>
     <ScrollView 
       style={styles.container}
+      contentContainerStyle={styles.scrollContent}
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
       }
@@ -538,16 +540,17 @@ export default function SimpleDashboard() {
           </View>
         </View>
       </View>
-      
-      {/* スタンプアニメーション */}
-      {showStampAnimation && currentCompletedGoal && (
-        <StampAnimation
-          goalTitle={currentCompletedGoal.title}
-          mood="happy"
-          onComplete={handleAnimationComplete}
-        />
-      )}
     </ScrollView>
+    
+    {/* スタンプアニメーション - ScrollViewの外に配置して画面固定位置に表示 */}
+    {showStampAnimation && currentCompletedGoal && (
+      <StampAnimation
+        goalTitle={currentCompletedGoal.title}
+        mood="happy"
+        onComplete={handleAnimationComplete}
+      />
+    )}
+  </>
   );
 }
 
@@ -555,6 +558,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
+  },
+  scrollContent: {
+    paddingBottom: 100, // タブバーの高さ分の余白を追加
   },
   header: {
     backgroundColor: 'white',
