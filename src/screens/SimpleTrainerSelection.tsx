@@ -296,13 +296,6 @@ export default function SimpleTrainerSelection() {
                 )}
               </View>
 
-              {/* キャッチフレーズ */}
-              <View style={[styles.catchphraseContainer, { borderLeftColor: color }]}>
-                <Text style={styles.catchphrase}>&ldquo;{trainer.personality.catchphrase}&rdquo;</Text>
-              </View>
-
-              {/* 説明 */}
-              <Text style={styles.description}>{trainer.description}</Text>
 
               {/* アクションボタン */}
               <View style={styles.actionButtons}>
@@ -344,9 +337,6 @@ export default function SimpleTrainerSelection() {
               <Text style={styles.summaryName}>{localSelectedTrainer.name}</Text>
               <Text style={styles.summaryType}>
                 {getTypeDisplayName(localSelectedTrainer.type)}タイプ
-              </Text>
-              <Text style={styles.summaryWords}>
-                応援メッセージ例: {localSelectedTrainer.personality?.supportiveWords?.slice(0, 3)?.join('、') || 'データなし'}など
               </Text>
             </View>
           </View>
